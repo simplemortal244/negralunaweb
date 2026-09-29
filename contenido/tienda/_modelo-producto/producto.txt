@@ -1,0 +1,12 @@
+Nombre del producto
+Precio: $0.000
+Escribe aquí la descripción del producto: qué es, para quién es,
+en qué está hecho, cuántas unidades hay. Cada línea es un párrafo.
+
+Puedes usar - para listar detalles:
+- Detalle uno
+- Detalle dos
+
+La foto del producto va en la subcarpeta fotos/ (la primera imagen
+es la que aparece en el escaparate). Copia esta carpeta completa,
+renómbrala con el nombre de tu producto y borra estas líneas.

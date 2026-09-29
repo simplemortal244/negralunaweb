@@ -1,0 +1,12 @@
+## Ranura de canciones de Discotopía
+
+Sube aquí las canciones del juego (sueltas, sin subcarpetas):
+mp3, wav, ogg, m4a, flac.
+
+El reproductor del juego las arma solo, en orden alfabético,
+con teclas 1-9 y auto-avance al terminar cada tema.
+Consejo: si un wav no carga, pásalo a 16-bit PCM 44.1kHz
+(o súbelo como mp3, que nunca falla).
+
+Los sonidos del juego (disparo, explosión, etc.) viven en
+la subcarpeta efectos/ de esta misma carpeta.

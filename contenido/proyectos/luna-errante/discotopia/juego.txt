@@ -1,0 +1,13 @@
+## Discotopía · el juego
+
+Rail shooter retro en pixel art: piloteas la nave de Luna
+Errante por una discoteca infinita, disparando y esquivando
+al ritmo de la música de la banda.
+
+♪ La música sale de la carpeta del juego:
+contenido/proyectos/luna-errante/discotopia/juego/audios/
+
+Sube ahí tus canciones y el reproductor las arma solo:
+teclas 1-9 cambian de tema, y al terminar uno sigue el
+siguiente. El botón "VOLVER AL MAPA" (o la tecla Esc)
+te trae de vuelta al mapa vivo.

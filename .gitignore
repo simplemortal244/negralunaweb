@@ -1,0 +1,12 @@
+# Archivos que NO subir a GitHub (se generan en runtime)
+# Render los crea automáticamente al arrancar la web.
+
+comentarios-estado.json
+visitas-estado.json
+__pycache__/
+*.pyc
+.DS_Store
+
+# Si abres la web en tu PC con iniciar-servidor, estos archivos
+# se crean solos cuando llegan comentarios/visitas — no los subas
+# a GitHub porque cada servidor debe tener su propio estado.

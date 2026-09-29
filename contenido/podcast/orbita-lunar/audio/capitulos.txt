@@ -1,0 +1,12 @@
+# CAPÍTULOS DE AUDIO · ÓRBITA LUNA
+# Aquí le pones título y descripción a cada audio subido en esta carpeta.
+# Una línea por capítulo, con este formato (todo lo que empieza con # es ayuda):
+#
+#   nombre-del-archivo.mp3 | Título del capítulo | Descripción corta opcional
+#
+# Ejemplo (quítale el # de adelante cuando subas tu audio):
+#   capitulo-01.mp3 | Episodio 1 · Despegue | Presentamos la órbita: qué es Órbita Lunar y por qué nace.
+#
+# Si un archivo no aparece en esta lista, la página le usa el nombre
+# del archivo como título. Nombra los archivos 01, 02, 03… para que
+# queden en orden.

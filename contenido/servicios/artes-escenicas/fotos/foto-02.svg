@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <pattern id="tej" width="56" height="56" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M28 6 L50 28 L28 50 L6 28 Z" fill="none" stroke="#c9683f" stroke-width="1" opacity=".12"/>
+      <path d="M28 20 L36 28 L28 36 L20 28 Z" fill="none" stroke="#d9a441" stroke-width="1" opacity=".08"/>
+    </pattern>
+    <radialGradient id="brillo" cx="50%" cy="40%" r="78%">
+      <stop offset="0%" stop-color="#d9a441" stop-opacity=".22"/>
+      <stop offset="55%" stop-color="#d9a441" stop-opacity=".06"/>
+      <stop offset="100%" stop-color="#d9a441" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="600" fill="#1a100b"/>
+  <rect width="800" height="600" fill="url(#tej)"/>
+  <rect width="800" height="600" fill="url(#brillo)"/>
+  <path d="M90 68 L93.6 76.4 L102 80 L93.6 83.6 L90 92 L86.4 83.6 L78 80 L86.4 76.4 Z" fill="#f0e3cd" opacity=".5"/><path d="M700 58 L703.6 66.4 L712 70 L703.6 73.6 L700 82 L696.4 73.6 L688 70 L696.4 66.4 Z" fill="#f0e3cd" opacity=".45"/><path d="M730 488 L733.6 496.4 L742 500 L733.6 503.6 L730 512 L726.4 503.6 L718 500 L726.4 496.4 Z" fill="#f0e3cd" opacity=".4"/><path d="M80 468 L83.6 476.4 L92 480 L83.6 483.6 L80 492 L76.4 483.6 L68 480 L76.4 476.4 Z" fill="#f0e3cd" opacity=".45"/>
+  <g><path d="M330 380 L330 180 L560 140 L560 340" fill="none" stroke="#d9a441" stroke-width="14" stroke-linecap="round"/><path d="M330 180 L560 140" stroke="#d9a441" stroke-width="18" stroke-linecap="round"/><ellipse cx="300" cy="390" rx="42" ry="32" fill="#d9a441"/><ellipse cx="530" cy="350" rx="42" ry="32" fill="#d9a441"/><path d="M620 180 L626.0 194.0 L640 200 L626.0 206.0 L620 220 L614.0 206.0 L600 200 L614.0 194.0 Z" fill="#f0e3cd" opacity=".6"/><path d="M200 144 L204.8 155.2 L216 160 L204.8 164.8 L200 176 L195.2 164.8 L184 160 L195.2 155.2 Z" fill="#f0e3cd" opacity=".5"/></g>
+  <g font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="26" fill="#a8957a">
+    <text x="44" y="556">partitura de escena</text>
+  </g>
+  <rect x="16" y="16" width="768" height="568" fill="none" stroke="#c9683f" stroke-width="2" opacity=".35"/>
+  <rect x="26" y="26" width="748" height="548" fill="none" stroke="#d9a441" stroke-width="1" opacity=".18"/>
+</svg>

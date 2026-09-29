@@ -1,0 +1,27 @@
+## VIDEOS DE NEGRA CUMBIA
+## ─────────────────────────────────────────────────────────────
+## Cómo poner un video aquí:
+##
+## 1) Por enlace de YouTube (RECOMENDADO — no pesa en tu web):
+##    Título del video | https://www.youtube.com/watch?v=XXXXXXXXXXX
+##
+##    También puedes usar el enlace corto youtu.be:
+##    Videoclip Negra Cumbia | https://youtu.be/dQw4w9WgXcQ
+##
+##    O el enlace de Shorts (videos verticales):
+##    Tardeo en vivo | https://www.youtube.com/shorts/abcdefghijk
+##
+## 2) Por archivo MP4 en esta carpeta (solo si es chico, <50 MB):
+##    Título del video.mp4
+##    (el archivo se reproducte solo; el nombre queda como título)
+##
+## IMPORTANTE: los enlaces de YouTube se incrustan en la web y
+## se sirven desde YouTube (no de tu servidor). Eso significa que
+## no gastan espacio ni ancho de banda de tu hosting, y se ven
+## rápido desde cualquier país.
+##
+## ─────────────────────────────────────────────────────────────
+## Ejemplos (borra el # para activarlos):
+## Videocip Negra Cumbia | https://www.youtube.com/watch?v=XXXXXXXXXXX
+## En vivo en la fiesta | https://youtu.be/XXXXXXXXXXX
+## Making of la cumbia | https://www.youtube.com/shorts/XXXXXXXXXXX

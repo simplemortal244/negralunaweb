@@ -1,0 +1,29 @@
+# CAPITULOS DE VIDEO · ORBITA LUNA
+# ─────────────────────────────────────────────────────────────
+#
+# Como publicar un capitulo en video:
+#
+# 1) Por enlace de YouTube (RECOMENDADO — no pesa en tu web):
+#
+#    https://www.youtube.com/watch?v=XXXXXXXXXXX | Titulo del capitulo | descripcion opcional
+#    https://youtu.be/XXXXXXXXXXX | Capitulo 1 · Despegue | De que va esta orbita
+#    https://www.youtube.com/shorts/XXXXXXXXXXX | Corto | Resumen de 60 segundos
+#
+#    Formato: enlace | titulo | descripcion (la descripcion es opcional)
+#    Todo lo que empieza con # es ayuda: la pagina lo ignora.
+#
+# 2) Por archivo MP4 en esta carpeta (solo si es chico, <50 MB):
+#
+#    nombre-del-video.mp4 | Titulo del capitulo | Descripcion corta opcional
+#
+#    Si no lo agregas aqui, la pagina usa el nombre del archivo como titulo.
+#
+# IMPORTANTE: los enlaces de YouTube se incrustan en la web y se sirven
+# desde YouTube (no de tu servidor). Eso significa que no gastan espacio
+# ni ancho de banda de tu hosting, y se ven rapido desde cualquier pais.
+#
+# ─────────────────────────────────────────────────────────────
+# Ejemplos (borra el # para activarlos):
+# https://www.youtube.com/watch?v=XXXXXXXXXXX | Capitulo 1 · Despegue | De que va esta orbita
+# https://youtu.be/XXXXXXXXXXX | Capitulo 2 · Deriva | Hablamos con...
+# https://www.youtube.com/shorts/XXXXXXXXXXX | Corto | Resumen de 60 segundos

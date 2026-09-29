@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NegraLuna HomeStudio · Mapa Vivo</title>
+  <meta name="description" content="NegraLuna HomeStudio — un mapa de nodos para descubrir nuestros proyectos, servicios, ubicación y contacto. Hecho a mano en Pinto, Ñuble, Chile." />
+  <meta name="theme-color" content="#150f0c" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/css/fonts.css?v=22" />
+  <link rel="stylesheet" href="assets/css/main.css?v=22" />
+  <link rel="stylesheet" href="assets/css/panel.css?v=22" />
+  <link rel="stylesheet" href="assets/css/visualizer.css?v=22" />
+</head>
+<body>
+
+  <!-- EL ESPACIO · planos separados (parallax al viajar) -->
+  <div id="space">
+    <div class="capa" id="capa-nebulosa" aria-hidden="true"></div>
+    <div class="capa" id="capa-lejos" aria-hidden="true"></div>
+    <div class="capa" id="capa-medio" aria-hidden="true"></div>
+    <div class="capa" id="capa-cerca" aria-hidden="true"></div>
+  </div>
+
+  <!-- EL MUNDO: nodos + hilos -->
+  <div id="world" aria-label="Mapa de nodos de NegraLuna HomeStudio">
+    <svg id="edges" aria-hidden="true"></svg>
+  </div>
+
+  <!-- polvo en primer plano: planea DELANTE de los nodos -->
+  <div id="polvo" aria-hidden="true"></div>
+
+  <!-- textura y viñeta -->
+  <div id="grain" aria-hidden="true"></div>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <!-- HUD -->
+  <nav id="breadcrumb" class="hud" aria-label="Ruta de exploración"></nav>
+
+  <div id="controls" class="hud">
+    <button class="ctl" id="ctl-home" title="Volver al centro (brújula)" aria-label="Volver al centro">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
+    </button>
+    <button class="ctl" id="ctl-open" title="Abrir todo / Descubrir rutas" aria-label="Abrir rutas principales">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M6.8 7.6L10.4 16M17.2 7.6L13.6 16M7.2 6h9.6"/></svg>
+    </button>
+    <button class="ctl" id="ctl-clear" title="Cerrar todo" aria-label="Cerrar todos los nodos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>
+    </button>
+  </div>
+
+  <div id="hint" class="hud"><b>Arrastra</b> para viajar · <b>gira la rueda</b> para acercar · <b>toca un nodo</b> para descubrirlo</div>
+  <div id="credit" class="hud">NegraLuna · teje tu sonido</div>
+
+  <!-- PANEL DE CONTENIDO -->
+  <div id="panel-backdrop"></div>
+  <aside id="panel" role="dialog" aria-modal="true" aria-label="Contenido del nodo">
+    <div class="greca-top"></div>
+    <header>
+      <div class="p-icon" id="p-icon"></div>
+      <div class="p-titles">
+        <div class="p-path" id="p-path"></div>
+        <h2 class="p-title" id="p-title"></h2>
+      </div>
+      <button class="p-close" id="p-close" aria-label="Cerrar panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="p-body" id="p-body"></div>
+  </aside>
+
+  <!-- TOAST -->
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- YouTube IFrame Player API: nos deja escuchar play/pause/ended
+       de los videos de YouTube incrustados para callar la radio -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script src="assets/js/nodes.js?v=22"></script>
+  <script src="assets/js/content.js?v=22"></script>
+  <script src="assets/js/engine.js?v=22"></script>
+  <script src="assets/js/visualizer.js?v=22"></script>
+  <script src="assets/js/panel.js?v=22"></script>
+  <script src="assets/js/main.js?v=22"></script>
+</body>
+</html>

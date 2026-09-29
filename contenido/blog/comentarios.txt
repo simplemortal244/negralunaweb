@@ -1,0 +1,12 @@
+# Comentarios sembrados por el estudio — un comentario por bloque.
+# Primera línea del bloque:  Nombre | fecha  — las líneas siguientes son el texto.
+# Un bloque termina con una línea vacía. Los publicados por visitantes
+# se guardan solos en comentarios-estado.json (la web los agrega al final).
+Josefa M. | 10 sep 2026
+Grabamos nuestro EP acá y la energía del estudio es otra cosa.
+Se escucha cálido, vivo, con alma. ¡Gracias por tanto cuidado en
+los detalles!
+
+Franco | 12 sep 2026
+El juego de Discotopía es simple pero engancha, y la música le
+queda perfecta. Volví tres veces a jugarlo.

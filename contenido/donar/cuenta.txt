@@ -1,0 +1,8 @@
+# Datos de transferencia — la web muestra cada línea con su botón Copiar.
+# Reemplaza estos datos por los tuyos y recarga la página.
+Titular: NegraLuna HomeStudio
+RUT: 12.345.678-9
+Banco: BancoEstado
+Tipo de cuenta: Cuenta RUT
+Número de cuenta: 1234567899
+Correo: hola@negraluna.cl

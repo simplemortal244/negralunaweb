@@ -1,0 +1,3351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Discotopía · Luna Errante</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            cursor: crosshair;
+        }
+        
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            image-rendering: pixelated; 
+            image-rendering: crisp-edges;
+        }
+        #game-over {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.7);
+            color: #ff3333;
+            font-family: 'Press Start 2P', monospace;
+            text-align: center;
+            z-index: 10;
+            backdrop-filter: blur(2px);
+        }
+
+        #game-over h1 {
+            font-size: 3rem;
+            margin: 0;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff5500;
+            letter-spacing: 0.3rem;
+            animation: parpadeo 0.8s infinite alternate;
+        }
+
+        #game-over p {
+            color: #ffffff;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+            line-height: 1.8;
+        }
+
+        #game-over button {
+            margin-top: 2rem;
+            padding: 1rem 2.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            background: #ff5500;
+            color: #ffffff;
+            border: 2px solid #ffaa66;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 0.15rem;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px #ff5500;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        #game-over button:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 30px #ffaa66;
+        }
+
+        @keyframes parpadeo {
+            from { opacity: 1; }
+            to { opacity: 0.6; }
+        }
+
+        /* === PARTÍCULAS DE ARENA flotando hacia el puntaje === */
+        .particula-arena {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: radial-gradient(circle, #ffdd44 0%, #ff9900 60%, transparent 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ffdd44, 0 0 12px #ff9900;
+            z-index: 8;
+            pointer-events: none;
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.6, 1);
+        }
+
+        /* Flash de pantalla cuando explota una nave enemiga */
+        #flash-pantalla {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(255,200,100,0.6) 0%, rgba(255,100,0,0.3) 50%, transparent 100%);
+            z-index: 4;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease-out;
+        }
+        #flash-pantalla.activo {
+            opacity: 1;
+        }
+
+        /* Animación del contador de puntaje subiendo */
+        @keyframes pulsoPuntaje {
+            0%   { transform: scale(1); color: #ffffff; }
+            50%  { transform: scale(1.3); color: #ffdd44; }
+            100% { transform: scale(1); color: #ffffff; }
+        }
+        #puntaje.pulsando {
+            animation: pulsoPuntaje 0.15s ease-out;
+        }
+
+        /* === ANIMACIÓN +1/+2 vida flotante === */
+        .vida-flotante {
+            position: fixed;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1.4rem;
+            color: #00ff44;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff44, 2px 2px 0 #003300;
+            z-index: 8;
+            pointer-events: none;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.8s cubic-bezier(0.5, 0, 0.8, 1);
+        }
+
+        /* Animación de vibración para la barra de vida */
+        @keyframes vibrarBarra {
+            0%   { transform: translate(0, 0) scale(1); }
+            20%  { transform: translate(-3px, -2px) scale(1.05); }
+            40%  { transform: translate(3px, 2px) scale(1.05); }
+            60%  { transform: translate(-2px, 2px) scale(1.05); }
+            80%  { transform: translate(2px, -2px) scale(1.05); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+        .barra-vibrando {
+            animation: vibrarBarra 0.4s ease-out;
+        }
+
+        /* === ESTILOS DEL RANKING === */
+        #ranking-lista .fila {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 2px 8px;
+            border-bottom: 1px dashed rgba(0,255,68,0.2);
+        }
+        #ranking-lista .fila.nuevo {
+            background: #00ff44;
+            color: #001a05;
+            text-shadow: none;
+            font-weight: bold;
+        }
+        #ranking-lista .fila .pos { width: 30px; }
+        #ranking-lista .fila .nom { flex: 1; text-align: left; }
+        #ranking-lista .fila .pts { width: 60px; text-align: right; }
+        #ranking-lista .fila .grd { width: 130px; text-align: center; color: #aaccff; font-size: 0.8em; }
+        #ranking-lista .fila.vacia { opacity: 0.3; }
+        #btn-guardar:hover {
+            background: #88ff88;
+            transform: scale(1.05);
+        }
+        #input-nombre:focus {
+            outline: none;
+            border-color: #88ff88;
+            box-shadow: 0 0 10px #00ff44;
+        }
+
+        /* === REPRODUCTOR RETRO VERDE (estilo monitor CRT de los 80) === */
+        #reproductor {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 180px;
+            background: #001a05;
+            border: 2px solid #00ff44;
+            box-shadow: 0 0 15px rgba(0,255,68,0.4), inset 0 0 30px rgba(0,255,68,0.08);
+            padding: 8px;
+            font-family: 'Press Start 2P', monospace;
+            color: #00ff44;
+            z-index: 5;
+            text-shadow: 0 0 4px #00ff44;
+            image-rendering: pixelated;
+        }
+        #reproductor .titulo {
+            font-size: 0.5rem;
+            text-align: center;
+            border-bottom: 1px dashed #00ff44;
+            padding-bottom: 5px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        #reproductor .cancion-actual {
+            font-size: 0.42rem;
+            text-align: center;
+            margin-bottom: 6px;
+            color: #88ff88;
+            min-height: 12px;
+        }
+        /* Barra visualizadora: 16 barras que se mueven al ritmo */
+        #reproductor .visualizador {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 24px;
+            background: #000a02;
+            border: 1px solid #00ff44;
+            padding: 3px;
+            margin-bottom: 6px;
+        }
+        #reproductor .visualizador .barra {
+            flex: 1;
+            margin: 0 1px;
+            background: linear-gradient(to top, #00ff44, #88ff88);
+            min-height: 2px;
+            height: 4px;
+            transition: height 0.08s ease-out;
+            box-shadow: 0 0 4px #00ff44;
+        }
+        /* Lista de canciones */
+        #reproductor .lista {
+            font-size: 0.38rem;
+            line-height: 1.8;
+        }
+        #reproductor .lista .item {
+            display: flex;
+            align-items: center;
+            padding: 3px 4px;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
+        }
+        #reproductor .lista .item.activo {
+            background: #00ff44;
+            color: #001a05;
+            text-shadow: none;
+            border: 1px solid #88ff88;
+        }
+        #reproductor .lista .item .num {
+            width: 15px;
+            font-weight: bold;
+        }
+        #reproductor .lista .item .nombre {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #reproductor .lista .item.vacia {
+            opacity: 0.35;
+        }
+        /* Efecto scanlines CRT */
+        #reproductor::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0,0,0,0.15) 0px,
+                rgba(0,0,0,0.15) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+        }
+        #reproductor .estado {
+            font-size: 0.38rem;
+            text-align: center;
+            margin-top: 5px;
+            color: #88ff88;
+            letter-spacing: 1px;
+        }
+        /* === BOTÓN VOLVER AL MAPA VIVO === */
+        #btn-volver { position: fixed; top: 14px; left: 14px; z-index: 30; font-family: 'Press Start 2P', monospace; font-size: 0.55rem; color: #88ff88; background: rgba(4, 14, 6, 0.88); border: 2px solid #22aa44; border-radius: 4px; padding: 10px 14px; letter-spacing: 1px; text-decoration: none; cursor: pointer; box-shadow: 0 0 12px rgba(34, 170, 68, 0.4); transition: transform 0.15s, box-shadow 0.15s, color 0.15s; }
+        #btn-volver:hover { transform: scale(1.07); color: #ccffcc; box-shadow: 0 0 24px rgba(34, 170, 68, 0.7); }
+    </style>
+</head>
+<body>
+
+    <div id="hud-cuenta" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); font-family:'Press Start 2P', monospace; font-size:1.0rem; color:#00ffff; text-shadow: 0 0 10px #00ffff; z-index:5; pointer-events:none; letter-spacing:1px;">
+        Asteroides en: <span id="contador">10</span>s
+    </div>
+
+    <!-- Pantalla de inicio -->
+    <div id="pantalla-inicio" style="position:fixed; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(ellipse at center, #0a0a2a 0%, #000 80%); z-index:20; font-family:'Press Start 2P', monospace; text-align:center; cursor:pointer;">
+        <h1 style="font-size:3rem; margin:0 0 20px 0; color:#88ddff; text-shadow: 0 0 20px #00aaff, 4px 4px 0 #003366; letter-spacing:3px; animation: flotar 3s ease-in-out infinite;">LUNA ERRANTE</h1>
+        <h2 style="font-size:1.6rem; margin:0 0 60px 0; color:#ffaa66; text-shadow: 0 0 15px #ff5500, 3px 3px 0 #442200; letter-spacing:6px; animation: parpadeo 1.2s infinite alternate;">asteroid</h2>
+        <p style="font-size:0.8rem; color:#ffffff; margin:0; line-height:1.8; animation: parpadeo 1.2s infinite alternate;">presiona cualquier boton<br>para iniciar</p>
+    </div>
+
+    <style>
+        @keyframes flotar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+
+    <div id="flash-pantalla"></div>
+
+    <div id="hud-nivel" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); font-family:'Press Start 2P', monospace; font-size:1.4rem; color:#ffdd66; text-shadow: 0 0 12px #ff9900, 2px 2px 0 #442200; z-index:5; pointer-events:none; letter-spacing:3px;">NIVEL 1</div>
+
+    <!-- Puntuación (esquina superior derecha) -->
+    <div style="position:fixed; top:20px; right:20px; z-index:5; pointer-events:none; font-family:'Press Start 2P', monospace; text-align:right;">
+        <div style="font-size:0.6rem; color:#ffdd66; margin-bottom:6px; text-shadow: 1px 1px 0 #442200;">PUNTAJE</div>
+        <div id="puntaje" style="font-size:1.6rem; color:#ffffff; text-shadow: 0 0 10px #ff9900, 2px 2px 0 #442200; letter-spacing:2px;">0</div>
+    </div>
+
+    <!-- Barra de vida de la nave -->
+    <div style="position:fixed; top:60px; left:20px; z-index:5; pointer-events:none; font-family:'Press Start 2P', monospace;">
+        <div style="font-size:0.6rem; color:#aaffaa; margin-bottom:6px; text-shadow: 1px 1px 0 #003300;">VIDA</div>
+        <div style="width:200px; height:18px; background:rgba(0,0,0,0.6); border:2px solid #44ff44; box-shadow: 0 0 8px rgba(68,255,68,0.5);">
+            <div id="barra-vida" style="width:100%; height:100%; background:linear-gradient(90deg, #00ff00, #88ff44); transition: width 0.3s, background 0.3s;"></div>
+        </div>
+        <div id="vida-texto" style="font-size:0.6rem; color:#ffffff; margin-top:6px; text-shadow: 1px 1px 0 #000;">5 / 5</div>
+    </div>
+
+    <!-- Puntaje máximo a superar (debajo de la barra de misiles) -->
+    <div style="position:fixed; top:195px; left:20px; z-index:5; pointer-events:none; font-family:'Press Start 2P', monospace;">
+        <div style="font-size:0.55rem; color:#ff6644; margin-bottom:5px; text-shadow: 1px 1px 0 #441100; letter-spacing:1px;">SUPERAR A</div>
+        <div id="record-grado" style="font-size:0.6rem; color:#aaccff; margin-bottom:3px; text-shadow: 0 0 6px #0066ff, 1px 1px 0 #001144; letter-spacing:1px;">CADET</div>
+        <div id="record-nombre" style="font-size:0.7rem; color:#ffaa66; margin-bottom:3px; text-shadow: 0 0 6px #ff6600, 1px 1px 0 #442200; letter-spacing:1px;">AAA</div>
+        <div id="record-puntos" style="font-size:1rem; color:#ffdd66; text-shadow: 0 0 8px #ff9900, 1px 1px 0 #442200; letter-spacing:1px;">500</div>
+    </div>
+
+    <!-- Barra de MISILES (debajo de la barra de vida) -->
+    <div style="position:fixed; top:125px; left:20px; z-index:5; pointer-events:none; font-family:'Press Start 2P', monospace;">
+        <div style="font-size:0.6rem; color:#3399ff; margin-bottom:6px; text-shadow: 1px 1px 0 #001144; letter-spacing:1px;">MISILES [M]</div>
+        <div style="width:200px; height:18px; background:rgba(0,0,30,0.6); border:2px solid #3399ff; box-shadow: 0 0 8px rgba(51,153,255,0.5);">
+            <div id="misiles-barra" style="width:40%; height:100%; background:linear-gradient(90deg, #0066ff, #66bbff); transition: width 0.3s, background 0.3s;"></div>
+        </div>
+        <div id="misiles-contador" style="font-size:0.6rem; color:#aaccff; margin-top:6px; text-shadow: 1px 1px 0 #001144;">2 / 5</div>
+    </div>
+
+    <!-- TOP 3 Ranking (parte inferior izquierda) -->
+    <div style="position:fixed; bottom:20px; left:20px; z-index:5; pointer-events:none; font-family:'Press Start 2P', monospace;">
+        <div style="font-size:0.55rem; color:#ffdd66; margin-bottom:6px; text-shadow: 1px 1px 0 #442200; letter-spacing:1px;">TOP 3</div>
+        <div id="top3-lista" style="font-size:0.45rem; line-height:1.7; text-align:left;"></div>
+    </div>
+
+    <!-- Rango militar y medallas (debajo del récord a superar) -->
+    <div style="position:fixed; top:265px; left:20px; z-index:5; pointer-events:none; font-family:'Press Start 2P', monospace;">
+        <div style="font-size:0.55rem; color:#66ddff; margin-bottom:5px; text-shadow: 1px 1px 0 #002244; letter-spacing:1px;">GRADO</div>
+        <div id="rango-nombre" style="font-size:0.75rem; color:#aaddff; margin-bottom:5px; text-shadow: 0 0 8px #0088ff, 1px 1px 0 #002244; letter-spacing:1px;">CADETE</div>
+        <div id="rango-medallas" style="font-size:0.9rem; color:#ffdd44; text-shadow: 0 0 6px #ffaa00; letter-spacing:2px; min-height:14px;">&#9733;</div>
+        <div id="rango-progreso" style="font-size:0.4rem; color:#88aacc; margin-top:5px; text-shadow: 1px 1px 0 #000;">0/5 BAJAS</div>
+    </div>
+
+    <div id="nivel-superado" style="position:fixed; top:0; left:0; width:100%; height:100%; display:none; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,30,0,0.85); z-index:15; font-family:'Press Start 2P', monospace; text-align:center;">
+        <h1 style="font-size:2.0rem; margin:0 0 30px 0; color:#66ff66; text-shadow: 0 0 20px #00ff00, 4px 4px 0 #003300; letter-spacing:3px; animation: parpadeo 0.8s infinite alternate;">Pasate el nivel</h1>
+        <p id="nivel-superado-num" style="font-size:1.1rem; color:#ffdd66; margin:0; text-shadow: 0 0 10px #ff9900, 2px 2px 0 #442200; letter-spacing:2px;">ahora se pone mas dificil</p>
+    </div>
+
+    <div id="aviso-enemigos" style="position:fixed; top:35%; left:50%; transform:translate(-50%, -50%); z-index:6; pointer-events:none; font-family:'Press Start 2P', monospace; display:none; text-align:center; animation: parpadeo 0.4s infinite alternate;">
+        <div style="font-size:1.4rem; color:#ff3333; text-shadow: 0 0 20px #ff0000, 4px 4px 0 #440000; letter-spacing:3px; margin-bottom:12px;">¡PELIGRO!</div>
+        <div style="font-size:1.0rem; color:#ff66aa; text-shadow: 0 0 15px #ff0066, 3px 3px 0 #440022; letter-spacing:2px; margin-bottom:8px;">ENEMIGOS XENOMORFOS</div>
+        <div id="nombre-xenomorfo" style="font-size:0.7rem; color:#aaccff; text-shadow: 0 0 10px #0066ff, 2px 2px 0 #000044; letter-spacing:2px;"></div>
+    </div>
+
+    <div id="aviso-ascenso" style="position:fixed; top:55%; left:50%; transform:translate(-50%, -50%); z-index:6; pointer-events:none; font-family:'Press Start 2P', monospace; display:none; text-align:center; animation: parpadeo 0.4s infinite alternate;">
+        <div style="font-size:1.4rem; color:#ffdd44; text-shadow: 0 0 20px #ffaa00, 4px 4px 0 #442200; letter-spacing:3px; margin-bottom:8px;">PROMOCION!</div>
+        <div id="ascenso-texto" style="font-size:0.9rem; color:#aaddff; text-shadow: 0 0 12px #0088ff, 3px 3px 0 #001144; letter-spacing:2px;">ASCENSO: TENIENTE</div>
+    </div>
+
+    <div id="game-over">
+        <h1>GAME OVER</h1>
+        <p>La nave ha sido destruida</p>
+        <!-- Sección para ingresar nombre (si aplica) -->
+        <div id="ingreso-nombre" style="display:none; margin-top:30px;">
+            <p style="font-size:0.7rem; color:#66ff66; margin-bottom:15px;">¡NUEVO RECORD TOP 10!</p>
+            <p style="font-size:0.6rem; color:#ffffff; margin-bottom:10px;">Tu puntaje: <span id="puntaje-final" style="color:#ffdd66;">0</span></p>
+            <p style="font-size:0.55rem; color:#aaffaa; margin-bottom:8px;">INGRESA TU NOMBRE:</p>
+            <input type="text" id="input-nombre" maxlength="10" placeholder="AAA"
+                style="font-family:'Press Start 2P', monospace; font-size:1rem; text-align:center; width:200px; padding:8px; background:#001a05; color:#00ff44; border:2px solid #00ff44; text-shadow:0 0 4px #00ff44; letter-spacing:2px; text-transform:uppercase;" />
+            <br>
+            <button id="btn-guardar" style="margin-top:15px; padding:8px 20px; font-family:'Press Start 2P', monospace; font-size:0.6rem; background:#00ff44; color:#001a05; border:2px solid #88ff88; cursor:pointer; letter-spacing:1px;">GUARDAR</button>
+        </div>
+        <!-- Ranking top 10 -->
+        <div id="ranking-display" style="display:none; margin-top:20px; max-width:90vw;">
+            <p style="font-size:0.7rem; color:#66ff66; margin-bottom:10px; letter-spacing:2px;">★ TOP 10 ★</p>
+            <div id="ranking-lista" style="font-size:0.45rem; line-height:1.8; text-align:left; display:inline-block;"></div>
+        </div>
+    </div>
+
+    <audio id="bg-music" preload="auto">
+    </audio>
+
+    <!-- Regreso al mapa vivo de NegraLuna (también con Esc) -->
+    <button id="btn-volver" type="button" title="Volver al mapa (Esc)">&#9664; VOLVER AL MAPA</button>
+
+    <!-- Reproductor retro verde (estilo monitor CRT de los 80) -->
+    <div id="reproductor">
+        <div class="titulo">♪ MUSIC PLAYER ♪</div>
+        <div class="cancion-actual" id="cancion-actual">- SELECCIONA -</div>
+        <div class="visualizador" id="visualizador">
+            <!-- 16 barras que se generan con JS -->
+        </div>
+        <div class="lista">
+            <!-- la lista se arma sola desde audios/ (cargarAudios) -->
+        </div>
+        <div class="estado" id="estado-musica">[1-5] CAMBIAR</div>
+    </div>
+
+    <!-- Efectos de sonido -->
+    <audio id="sfx-disparo" preload="auto">
+    </audio>
+    <audio id="sfx-explosion" preload="auto">
+    </audio>
+    <audio id="sfx-gameover" preload="auto">
+    </audio>
+    <audio id="sfx-vida" preload="auto">
+    </audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+    
+    <script>
+        // 1. LÓGICA DE AUDIO ULTRA-FORZADA (Cualquier interacción activa el tema)
+        const music = document.getElementById('bg-music');
+        music.volume = 0.95; // Volumen alto (subido para que suene fuerte)
+
+        // === REPRODUCTOR: las canciones salen de la carpeta del juego ===
+        // contenido/proyectos/luna-errante/discotopia/juego/audios/
+        // Lo que subas ahí (mp3/wav/ogg/m4a/flac) entra solo a la lista,
+        // en orden alfabético. Teclas 1-9 (o clic en la lista) para cambiar.
+        const CARPETA_AUDIOS = 'proyectos/luna-errante/discotopia/juego/audios';
+        let canciones = [];
+        let cancionActual = 0;
+
+        function textoEstado() {
+            return canciones.length ? '[1-' + canciones.length + '] CAMBIAR' : '[ SIN CANCIONES ]';
+        }
+
+        function nombreBonito(archivo) {
+            return archivo.replace(/\.(mp3|wav|ogg|m4a|flac|aac)$/i, '');
+        }
+
+        function normaliza(s) {
+            return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s\-_]+/g, '');
+        }
+
+        // Arma la lista de canciones y conecta los efectos desde la carpeta
+        async function cargarAudios() {
+            let efectos = [];
+            try {
+                const r = await fetch('/api/contenido', { cache: 'no-store' });
+                if (r.ok) {
+                    const j = await r.json();
+                    if (j && j.ok && j.files) {
+                        const pref = CARPETA_AUDIOS + '/';
+                        const prefEfectos = pref + 'efectos/';
+                        const halladas = [];
+                        Object.keys(j.files).forEach(ruta => {
+                            const it = j.files[ruta];
+                            if (it.kind !== 'audio') return;
+                            if (ruta.startsWith(prefEfectos)) {
+                                efectos.push(ruta.slice(prefEfectos.length));
+                            } else if (ruta.startsWith(pref)) {
+                                halladas.push({ nombre: ruta.slice(pref.length), ruta: ruta });
+                            }
+                        });
+                        halladas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                        canciones = halladas.map(a => ({ src: '/contenido/' + a.ruta, nombre: nombreBonito(a.nombre), volumen: 0.9 }));
+                    }
+                }
+            } catch (e) {
+                console.log('Sin listado de contenido (¿se abrió sin servidor?):', e);
+            }
+
+            const lista = document.querySelector('#reproductor .lista');
+            if (canciones.length) {
+                lista.innerHTML = canciones.map((c, i) =>
+                    '<div class="item' + (i === 0 ? ' activo' : '') + '" data-cancion="' + i + '">' +
+                    '<span class="num">' + (i + 1) + '.</span>' +
+                    '<span class="nombre">' + c.nombre + '</span></div>'
+                ).join('');
+                // Precarga la primera: el primer gesto del usuario la dispara
+                music.src = encodeURI(canciones[0].src);
+                music.load();
+                document.getElementById('cancion-actual').textContent = '> ' + canciones[0].nombre.toUpperCase();
+            } else {
+                lista.innerHTML = '<div class="item activo"><span class="num">!</span>' +
+                    '<span class="nombre">sube audios a contenido/' + CARPETA_AUDIOS + '</span></div>';
+                document.getElementById('cancion-actual').textContent = '- RANURA VACIA -';
+            }
+            document.getElementById('estado-musica').textContent = textoEstado();
+
+            // Efectos: busca cada sonido por el inicio de su nombre en audios/efectos/
+            // (valen los nombres originales: "Game Over.mp3", "vida extra.wav", etc.)
+            const busquedas = [
+                { id: 'sfx-disparo', claves: ['disparo'] },
+                { id: 'sfx-explosion', claves: ['explosion'] },
+                { id: 'sfx-gameover', claves: ['gameover', 'game'] },
+                { id: 'sfx-vida', claves: ['vidaextra', 'vida'] }
+            ];
+            busquedas.forEach(b => {
+                const el = document.getElementById(b.id);
+                if (!el) return;
+                const hallado = efectos.find(n => b.claves.some(c => normaliza(n).startsWith(c)));
+                if (hallado) el.src = '/contenido/' + CARPETA_AUDIOS + '/efectos/' + hallado;
+            });
+        }
+        cargarAudios();
+
+        // === AUTO-AVANCE: cuando termina un tema, pasa al siguiente ===
+        music.addEventListener('ended', () => {
+            let siguiente = cancionActual + 1;
+            if (siguiente >= canciones.length) siguiente = 0; // vuelve al principio al terminar la última
+            seleccionarCancion(siguiente);
+        });
+
+        // Crear las 16 barras del visualizador
+        const visualizador = document.getElementById('visualizador');
+        const barras = [];
+        for (let i = 0; i < 16; i++) {
+            const barra = document.createElement('div');
+            barra.className = 'barra';
+            visualizador.appendChild(barra);
+            barras.push(barra);
+        }
+
+        // Actualiza la UI del reproductor al cambiar de canción
+        // 'intento' cuenta los reintentos por si el WAV tarda en cargar
+        function seleccionarCancion(idx, intento = 0) {
+            if (idx < 0 || idx >= canciones.length) return;
+            if (canciones[idx] === null) {
+                const estado = document.getElementById('estado-musica');
+                estado.textContent = '[ SLOT VACIO ]';
+                estado.style.color = '#ff4444';
+                setTimeout(() => {
+                    estado.textContent = textoEstado();
+                    estado.style.color = '#88ff88';
+                }, 1000);
+                return;
+            }
+            cancionActual = idx;
+            const cancion = canciones[idx];
+
+            // Cancelar cualquier carga/listener previo para evitar superposición
+            music.removeEventListener('canplay', onCanPlay);
+            music.removeEventListener('error', onErrorLoad);
+
+            // Cambiar fuente del audio (con URL encoding por si tiene espacios/caracteres raros)
+            music.src = encodeURI(cancion.src);
+            music.load();
+            music.volume = cancion.volumen !== undefined ? cancion.volumen : 0.85;
+
+            // Cuando el navegador confirma que puede reproducir, recién ahí llama a play()
+            // Esto resuelve el problema de WAVs que tardan más en cargar/decodificar.
+            function onCanPlay() {
+                music.play().catch(err => {
+                    console.log('Play rechazado:', err);
+                    if (intento < 2) {
+                        // Reintenta una vez más tras 200ms
+                        setTimeout(() => seleccionarCancion(idx, intento + 1), 200);
+                    } else {
+                        mostrarErrorCancion(cancion.src, 'NO REPRODUCE');
+                    }
+                });
+            }
+            // Si el navegador no puede cargar/decodificar el archivo
+            function onErrorLoad() {
+                const err = music.error;
+                let msg = 'ERROR';
+                if (err) {
+                    switch (err.code) {
+                        case 1: msg = 'ABORTED'; break;
+                        case 2: msg = 'RED'; break;
+                        case 3: msg = 'FORMATO NO SOPORTADO'; break; //decode error
+                        case 4: msg = 'NO ENCONTRADO'; break;
+                    }
+                }
+                mostrarErrorCancion(cancion.src, msg);
+            }
+            music.addEventListener('canplay', onCanPlay, { once: true });
+            music.addEventListener('error', onErrorLoad, { once: true });
+
+            // Timeout de seguridad: si en 5 segundos no carga ni falla, avisa
+            setTimeout(() => {
+                if (music.readyState === 0 && cancionActual === idx) {
+                    mostrarErrorCancion(cancion.src, 'SIN RESPUESTA');
+                }
+            }, 5000);
+
+            // Actualizar UI
+            document.getElementById('cancion-actual').textContent = '> ' + cancion.nombre.toUpperCase();
+            document.querySelectorAll('#reproductor .lista .item').forEach((el, i) => {
+                if (i === idx) el.classList.add('activo');
+                else el.classList.remove('activo');
+            });
+        }
+
+        // === MANEJO DE ERRORES: muestra en la UI qué pasó con el archivo ===
+        function mostrarErrorCancion(src, mensaje) {
+            const estado = document.getElementById('estado-musica');
+            estado.textContent = '[ ' + mensaje + ' ]';
+            estado.style.color = '#ff4444';
+            console.error('PROBLEMA CON ARCHIVO:', src, '-', mensaje);
+            if (mensaje === 'FORMATO NO SOPORTADO') {
+                console.error('>> El WAV probablemente usa un codec que el navegador no puede decodificar (24-bit, float, ADPCM, etc.). Convertí el archivo a WAV 16-bit PCM 44.1kHz stereo.');
+            }
+            setTimeout(() => {
+                estado.textContent = textoEstado();
+                estado.style.color = '#88ff88';
+            }, 3000);
+        }
+
+        // Volver al mapa: si el juego corre DENTRO de la página del sitio
+        // (capa de pantalla completa), se avisa al sitio con postMessage y la
+        // capa se pliega sola — la dirección web nunca cambia. Si en cambio
+        // el juego fue abierto directo (su propia URL), se navega al inicio.
+        function volverAlMapa() {
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ tipo: 'juego:cerrar' }, '*');
+                    return;
+                }
+            } catch (err) { /* sin acceso al contenedor: navegar normal */ }
+            window.location.href = '/';
+        }
+        document.getElementById('btn-volver').addEventListener('click', volverAlMapa);
+
+        // Escuchar teclas 1-5 para cambiar de canción
+        window.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= String(Math.max(canciones.length, 1))) {
+                seleccionarCancion(parseInt(e.key) - 1);
+            }
+            if (e.key === 'Escape') {
+                volverAlMapa();
+            }
+        });
+
+        // Clic (o toque) en un tema de la lista: lo selecciona
+        document.getElementById('reproductor').addEventListener('click', (e) => {
+            const item = e.target.closest('.item');
+            if (item && item.dataset.cancion !== undefined) {
+                seleccionarCancion(parseInt(item.dataset.cancion, 10));
+            }
+        });
+
+        // Visualizador: actualizar las barras al ritmo de la música (simulado)
+        let visualizadorTiempo = 0;
+        function actualizarVisualizador(delta, time) {
+            if (!music.paused && cancionActual >= 0 && canciones[cancionActual] !== null) {
+                // Simulación de barras que reaccionan a la música
+                for (let i = 0; i < barras.length; i++) {
+                    // Cada barra tiene su propia "frecuencia" simulada
+                    const frecuencia = Math.sin(time * 4 + i * 0.5) * 0.5 + 0.5;
+                    const ruido = Math.random() * 0.4;
+                    const altura = Math.max(1, (frecuencia * 0.7 + ruido) * 20);
+                    barras[i].style.height = altura + 'px';
+                }
+            } else {
+                // Música pausada: barras bajas
+                for (let i = 0; i < barras.length; i++) {
+                    barras[i].style.height = '1px';
+                }
+            }
+        }
+
+        // Efectos de sonido
+        const sfxDisparo = document.getElementById('sfx-disparo');
+        const sfxExplosion = document.getElementById('sfx-explosion');
+        const sfxGameOver = document.getElementById('sfx-gameover');
+        sfxDisparo.volume = 0.12; // 40% del volumen original
+        sfxExplosion.volume = 0.24; // 40% del volumen original
+        sfxGameOver.volume = 0.32; // 40% del volumen original
+        const sfxVida = document.getElementById('sfx-vida');
+        sfxVida.volume = 0.32; // 40% del volumen (mismo que los demás)
+
+        function playSfx(audio) {
+            if (!audio) return;
+            try {
+                audio.currentTime = 0;
+                const promesa = audio.play();
+                if (promesa) {
+                    promesa.catch(err => console.log('Efecto no disponible aún:', err));
+                }
+            } catch (e) {
+                console.log('Error al reproducir efecto:', e);
+            }
+        }
+
+        function iniciarMusica() {
+            if (music.paused) {
+                music.play()
+                .then(() => {
+                    // Si ya empezó a sonar, sacamos los detectores para no gastar recursos
+                    removerDetectores();
+                })
+                .catch(err => console.log("Esperando una acción real del usuario...", err));
+            }
+        }
+
+        // Escucha teclas, clics o movimientos del mouse. Lo primero que hagas activará tu canción.
+        window.addEventListener('keydown', iniciarMusica);
+        window.addEventListener('click', iniciarMusica);
+        window.addEventListener('mousemove', iniciarMusica);
+        window.addEventListener('touchstart', iniciarMusica);
+
+        function removerDetectores() {
+            window.removeEventListener('keydown', iniciarMusica);
+            window.removeEventListener('click', iniciarMusica);
+            window.removeEventListener('mousemove', iniciarMusica);
+            window.removeEventListener('touchstart', iniciarMusica);
+        }
+
+
+        // 2. CONFIGURACIÓN DE RESOLUCIÓN "PIXEL ART" A PANTALLA COMPLETA
+        const pixelScale = 4; 
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05050a);
+        scene.fog = new THREE.Fog(0x05050a, 30, 250); // Niebla reducida para ver más lejos
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 1.2, 4.5); 
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio / pixelScale);
+        document.body.appendChild(renderer.domElement);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio / pixelScale);
+        });
+
+        // 3. ILUMINACIÓN
+        scene.add(new THREE.AmbientLight(0x666688, 0.75)); // bajado 50% (era 1.5)
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2); 
+        sunLight.position.set(-20, 10, -30);
+        scene.add(sunLight);
+        const rimLight = new THREE.DirectionalLight(0x00ffff, 0.5);
+        rimLight.position.set(0, -5, 5);
+        scene.add(rimLight);
+        const engineLight = new THREE.PointLight(0xff5500, 2, 8);
+        scene.add(engineLight);
+
+        // === SISTEMA DE LUCES DE DISCOTEQUE (PointLights que ILUMINAN objetos, sin verse a sí mismos) ===
+        const coloresDiscoteque = [0xff3388, 0x3388ff, 0xffaa22, 0x8833ff, 0x22ddaa, 0xff5544];
+        const lucesDiscoteque = [];
+
+        // 6 PointLights que orbitan alrededor de la nave iluminando los objetos cercanos
+        for (let i = 0; i < 6; i++) {
+            const color = coloresDiscoteque[i];
+            const luz = new THREE.PointLight(color, 0, 25); // alcance 25 unidades
+            luz.userData = {
+                anguloBase: (i / 6) * Math.PI * 2,
+                radioOrbita: 6 + (i % 2) * 2,    // radios 6 y 8
+                velocidadOrbita: 0.4 + (i % 3) * 0.2,
+                fase: i * 0.7,
+                yOffset: (i % 3) * 2 - 2         // alturas -2, 0, 2
+            };
+            lucesDiscoteque.push(luz);
+            scene.add(luz);
+        }
+
+        // 4. DISEÑO DE LA NAVE (Simétrica Perfecta)
+        const ship = new THREE.Group();
+        ship.scale.setScalar(0.6); 
+
+        const matHull = new THREE.MeshStandardMaterial({ color: 0x2a2a3d, flatShading: true, side: THREE.DoubleSide });
+        const matWing = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, flatShading: true, side: THREE.DoubleSide });
+        const matCockpit = new THREE.MeshStandardMaterial({ color: 0x00ffff, flatShading: true, emissive: 0x004444, side: THREE.DoubleSide });
+        const matGlowBlue = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const matGlowOrange = new THREE.MeshBasicMaterial({ color: 0xff5500 });
+        const matMetal = new THREE.MeshStandardMaterial({ color: 0x111111, flatShading: true, side: THREE.DoubleSide });
+
+        // Fuselaje
+        const hullGeo = new THREE.CylinderGeometry(0.2, 0.6, 2.5, 4);
+        hullGeo.rotateX(Math.PI / 2);
+        hullGeo.rotateZ(Math.PI / 4); 
+        const hull = new THREE.Mesh(hullGeo, matHull);
+        ship.add(hull);
+
+        // Punta delantera
+        const noseGeo = new THREE.ConeGeometry(0.2, 1.5, 4);
+        noseGeo.rotateX(-Math.PI / 2);
+        noseGeo.rotateZ(Math.PI / 4);
+        noseGeo.translate(0, 0, -2);
+        ship.add(new THREE.Mesh(noseGeo, matHull));
+
+        // Cabina
+        const cockpitGeo = new THREE.SphereGeometry(0.3, 4, 4);
+        cockpitGeo.scale(1, 0.6, 1.5); 
+        const cockpit = new THREE.Mesh(cockpitGeo, matCockpit);
+        cockpit.position.set(0, 0.15, -0.5);
+        ship.add(cockpit);
+
+        // Lado Izquierdo
+        const leftParts = new THREE.Group();
+        const wingGeo = new THREE.BoxGeometry(2, 0.1, 1.5);
+        wingGeo.translate(-1, 0, 0); 
+        wingGeo.rotateY(-Math.PI / 8); 
+        leftParts.add(new THREE.Mesh(wingGeo, matWing));
+
+        const tailGeo = new THREE.BoxGeometry(0.1, 0.6, 0.8);
+        tailGeo.translate(-0.5, 0.3, -0.2); 
+        leftParts.add(new THREE.Mesh(tailGeo, matWing));
+
+        const engHousingGeo = new THREE.CylinderGeometry(0.2, 0.25, 0.8, 6);
+        engHousingGeo.rotateX(Math.PI / 2);
+        const engHousing = new THREE.Mesh(engHousingGeo, matMetal);
+        engHousing.position.set(-0.5, 0, 0.8);
+        leftParts.add(engHousing);
+
+        const engCoreGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 6);
+        engCoreGeo.rotateX(Math.PI / 2);
+        const engCore = new THREE.Mesh(engCoreGeo, matGlowOrange);
+        engCore.position.set(-0.5, 0, 0.9);
+        leftParts.add(engCore);
+
+        const cannonGeo = new THREE.CylinderGeometry(0.05, 0.05, 1, 4);
+        cannonGeo.rotateX(Math.PI / 2);
+        const cannon = new THREE.Mesh(cannonGeo, matMetal);
+        cannon.position.set(-1.8, -0.05, -0.4);
+        leftParts.add(cannon);
+
+        const tipLightGeo = new THREE.SphereGeometry(0.08, 4, 4);
+        const tipLight = new THREE.Mesh(tipLightGeo, matGlowBlue);
+        tipLight.position.set(-1.9, 0, -0.5);
+        leftParts.add(tipLight);
+
+        leftParts.position.set(-0.2, -0.05, 0.2);
+        ship.add(leftParts);
+
+        // Lado Derecho (Espejo)
+        const rightParts = leftParts.clone();
+        rightParts.scale.x = -1; 
+        rightParts.position.x = 0.2;
+        ship.add(rightParts);
+
+        const engineCores = [engCore];
+        rightParts.traverse((child) => {
+            if (child.material === matGlowOrange) engineCores.push(child);
+        });
+
+        // === SISTEMA DE ESTELA DE PROPULSIÓN (partículas pequeñas) ===
+        // El chorro se compone de muchas partículas muy pequeñas que fluyen hacia atrás
+        const NUM_PARTICULAS_ESTELA = 240; // 120 por motor (doble)
+        const LONGITUD_ESTELA = 6;
+        const motoresPos = [
+            { x: -0.42, y: -0.03, z: 0.66 },
+            { x:  0.42, y: -0.03, z: 0.66 }
+        ];
+
+        // Crear geometría con todas las partículas
+        const estelaGeo = new THREE.BufferGeometry();
+        const estelaPosiciones = new Float32Array(NUM_PARTICULAS_ESTELA * 3);
+        const estelaColores = new Float32Array(NUM_PARTICULAS_ESTELA * 3);
+        // Datos por partícula: offset en el chorro (0 a 1), motor asignado, fase
+        const estelaDatos = [];
+        for (let i = 0; i < NUM_PARTICULAS_ESTELA; i++) {
+            estelaDatos.push({
+                offset: Math.random(),           // posición inicial aleatoria en el chorro
+                motorIdx: Math.floor(i / (NUM_PARTICULAS_ESTELA / 2)), // motor 0 o 1
+                velocidad: 0.6 + Math.random() * 0.8, // qué tan rápido viaja hacia atrás
+                offsetY: (Math.random() - 0.5) * 0.3, // dispersión vertical
+                offsetX: (Math.random() - 0.5) * 0.3, // dispersión horizontal
+            });
+        }
+        estelaGeo.setAttribute('position', new THREE.BufferAttribute(estelaPosiciones, 3));
+        estelaGeo.setAttribute('color', new THREE.BufferAttribute(estelaColores, 3));
+        const estelaMat = new THREE.PointsMaterial({
+            size: 0.09,                    // partículas muy pequeñas (mitad de tamaño)
+            sizeAttenuation: true,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const estelaMesh = new THREE.Points(estelaGeo, estelaMat);
+        scene.add(estelaMesh);
+
+        function actualizarEstelaPropulsion(delta, time) {
+            if (!shipAlive) {
+                estelaMesh.visible = false;
+                return;
+            }
+            estelaMesh.visible = true;
+
+            for (let i = 0; i < NUM_PARTICULAS_ESTELA; i++) {
+                const d = estelaDatos[i];
+                // Avanzar la partícula hacia atrás en el chorro
+                d.offset += delta * d.velocidad * 0.5;
+                if (d.offset > 1) d.offset -= 1; // loop
+                const t = d.offset; // 0 en el motor, 1 al final del chorro
+                const motor = motoresPos[d.motorIdx];
+                // Posición: motor + desplazamiento hacia +Z (atrás)
+                // Oscilación turbulenta que crece hacia la cola
+                const turbulencia = t * 0.4;
+                const oscX = Math.sin(time * 5 + i * 0.7) * turbulencia + d.offsetX * t;
+                const oscY = Math.cos(time * 4 + i * 0.9) * turbulencia + d.offsetY * t;
+                estelaPosiciones[i*3]   = ship.position.x + motor.x + oscX;
+                estelaPosiciones[i*3+1] = ship.position.y + motor.y + oscY;
+                estelaPosiciones[i*3+2] = ship.position.z + motor.z + t * LONGITUD_ESTELA;
+                // Color: naranja brillante cerca del motor, desvaneciéndose hacia la cola
+                const intensidad = 1 - t;
+                estelaColores[i*3]   = intensidad * 1.0;   // R
+                estelaColores[i*3+1] = intensidad * 0.45;  // G (naranja-amarillo)
+                estelaColores[i*3+2] = intensidad * 0.05;  // B (poco azul)
+            }
+            estelaGeo.attributes.position.needsUpdate = true;
+            estelaGeo.attributes.color.needsUpdate = true;
+        }
+
+        scene.add(ship);
+        ship.visible = false; // Oculta hasta iniciar el juego
+
+        // 4.6 MIRA 3D EN LA DISTANCIA (X que sigue a la nave, donde apuntan los disparos)
+        const miraGroup = new THREE.Group();
+        const miraMat = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.6
+        });
+        // Construir X con dos cilindros cruzados
+        const miraBarGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.4, 6);
+        const bar1 = new THREE.Mesh(miraBarGeo, miraMat);
+        bar1.rotation.z = Math.PI / 4;  // diagonal         miraGroup.add(bar1);
+        const bar2 = new THREE.Mesh(miraBarGeo, miraMat);
+        bar2.rotation.z = -Math.PI / 4; // diagonal /
+        miraGroup.add(bar2);
+        // Pequeño círculo/punto central
+        const miraDotGeo = new THREE.RingGeometry(0.35, 0.42, 16);
+        const miraDot = new THREE.Mesh(miraDotGeo, miraMat);
+        miraGroup.add(miraDot);
+        // Posicionar lejos, en la dirección en que apuntan los disparos (-Z)
+        miraGroup.position.set(0, 0, -60);
+        scene.add(miraGroup);
+
+        // 4.5 SISTEMA DE EXPLOSIÓN
+        const explosionParticles = [];
+        const explosionDuration = 1.5;
+
+        function crearExplosion(x, y, z) {
+            const numParticulas = 60;
+            for (let i = 0; i < numParticulas; i++) {
+                const geo = new THREE.IcosahedronGeometry(Math.random() * 0.15 + 0.05, 0);
+                const color = Math.random() < 0.5 ? 0xff5500 : (Math.random() < 0.5 ? 0xffaa00 : 0xffff00);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set(x, y, z);
+                p.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 8
+                );
+                p.userData.life = explosionDuration;
+                p.userData.maxLife = explosionDuration;
+                p.userData.isFlash = false;
+                explosionParticles.push(p);
+                scene.add(p);
+            }
+            // Flash de luz
+            const flash = new THREE.PointLight(0xff5500, 10, 25);
+            flash.position.set(x, y, z);
+            flash.userData.life = 0.4;
+            flash.userData.maxLife = 0.4;
+            flash.userData.isFlash = true;
+            explosionParticles.push(flash);
+            scene.add(flash);
+        }
+
+        function actualizarExplosion(delta) {
+            for (let i = explosionParticles.length - 1; i >= 0; i--) {
+                const p = explosionParticles[i];
+                p.userData.life -= delta;
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    explosionParticles.splice(i, 1);
+                    continue;
+                }
+                if (p.userData.isFlash) {
+                    p.intensity = (p.userData.life / p.userData.maxLife) * 10;
+                } else {
+                    p.position.x += p.userData.velocity.x * delta;
+                    p.position.y += p.userData.velocity.y * delta;
+                    p.position.z += p.userData.velocity.z * delta;
+                    const scale = p.userData.life / p.userData.maxLife;
+                    p.scale.setScalar(scale);
+                    p.userData.velocity.multiplyScalar(0.96);
+                }
+            }
+        }
+
+        // 5. PLANETA DISCOTEQUE - esfera lisa tipo espejo con malla de paralelos/meridianos
+        const planetGroup = new THREE.Group();
+
+        // === Cuerpo principal: esfera lisa reflectante ===
+        const planetGeo = new THREE.SphereGeometry(80, 64, 48); // esfera lisa con alta resolución
+        const planetMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,           // blanco puro
+            metalness: 0.7,            // menos metálico para que reciba más luz
+            roughness: 0.25,           // un poco más rugoso para reflejar mejor las luces
+            emissive: 0x666666,        // gris medio emisivo
+            emissiveIntensity: 0.3     // bajado 50% (era 0.6)
+        });
+        const planet = new THREE.Mesh(planetGeo, planetMat);
+        planetGroup.add(planet);
+
+        // === Malla de paralelos y meridianos (wireframe sobre la esfera) ===
+        const numParalelos = 24; // Doble que antes
+        for (let i = 1; i < numParalelos; i++) {
+            const lat = (i / numParalelos) * Math.PI - Math.PI / 2;
+            const r = 80 * Math.cos(lat);
+            const y = 80 * Math.sin(lat);
+            const paraleloGeo = new THREE.BufferGeometry();
+            const puntos = [];
+            const segmentos = 64;
+            for (let j = 0; j <= segmentos; j++) {
+                const ang = (j / segmentos) * Math.PI * 2;
+                puntos.push(Math.cos(ang) * r, y, Math.sin(ang) * r);
+            }
+            paraleloGeo.setAttribute('position', new THREE.Float32BufferAttribute(puntos, 3));
+            const paralelo = new THREE.Line(paraleloGeo, new THREE.LineBasicMaterial({
+                color: 0xdddddd, transparent: true, opacity: 0.5  // blanco plata
+            }));
+            planetGroup.add(paralelo);
+        }
+        const numMeridianos = 32; // Doble que antes
+        for (let i = 0; i < numMeridianos; i++) {
+            const lon = (i / numMeridianos) * Math.PI * 2;
+            const meridianoGeo = new THREE.BufferGeometry();
+            const puntos = [];
+            const segmentos = 64;
+            for (let j = 0; j <= segmentos; j++) {
+                const lat = (j / segmentos) * Math.PI - Math.PI / 2;
+                const r = 80 * Math.cos(lat);
+                const y = 80 * Math.sin(lat);
+                puntos.push(Math.cos(lon) * r, y, Math.sin(lon) * r);
+            }
+            meridianoGeo.setAttribute('position', new THREE.Float32BufferAttribute(puntos, 3));
+            const meridiano = new THREE.Line(meridianoGeo, new THREE.LineBasicMaterial({
+                color: 0xdddddd, transparent: true, opacity: 0.5  // blanco plata
+            }));
+            planetGroup.add(meridiano);
+        }
+
+        // === 3 fuentes de luz externas (amarillo, azul, rojo) desde distintas direcciones ===
+        const fuentesLuz = [];
+
+        function crearFuenteLuz(colorHex, x, y, z, velocidad, anguloInicial) {
+            const grupo = new THREE.Group();
+            const luz = new THREE.PointLight(colorHex, 3, 600); // bajado 50% (era 6)
+            luz.position.set(x, y, z);
+            grupo.add(luz);
+            const sol = new THREE.Mesh(
+                new THREE.SphereGeometry(15, 16, 16),
+                new THREE.MeshBasicMaterial({ color: colorHex })
+            );
+            sol.position.copy(luz.position);
+            grupo.add(sol);
+            grupo.userData = { color: colorHex, velocidad: velocidad, angulo: anguloInicial, basePos: {x, y, z} };
+            fuentesLuz.push(grupo);
+            planetGroup.add(grupo);
+            return grupo;
+        }
+
+        crearFuenteLuz(0xffdd22, -200, 150, 100, 0.4, 0);           // AMARILLA - arriba izquierda
+        crearFuenteLuz(0x3366ff, 220, -100, 80, 0.5, Math.PI * 0.6); // AZUL - derecha abajo
+        crearFuenteLuz(0xff3344, 80, 180, -180, 0.3, Math.PI * 1.2); // ROJA - arriba atrás
+
+        // Luz blanca frontal fija para asegurar que el planeta siempre se vea iluminado
+        const luzFrontal = new THREE.DirectionalLight(0xffffff, 1.0); // bajado 50% (era 2.0)
+        luzFrontal.position.set(0, 50, 200); // desde adelante
+        planetGroup.add(luzFrontal);
+        // Luz blanca superior fija
+        const luzSuperior = new THREE.DirectionalLight(0xffffff, 0.75); // bajado 50% (era 1.5)
+        luzSuperior.position.set(0, 200, 0);
+        planetGroup.add(luzSuperior);
+
+        // === RAYOS de luz reales: líneas largas y finas que emergen del planeta ===
+        const numRayos = 200; // cantidad visible sin tapar la pantalla
+        const rayosDisco = [];
+        const coloresRayosBase = [0xffdd22, 0x3366ff, 0xff3344]; // amarillo, azul, rojo
+        for (let i = 0; i < numRayos; i++) {
+            // Dirección esférica uniforme
+            const phi = Math.acos(1 - 2 * (i + 0.5) / numRayos);
+            const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+            const dirX = Math.sin(phi) * Math.cos(theta);
+            const dirY = Math.sin(phi) * Math.sin(theta);
+            const dirZ = Math.cos(phi);
+            // Geometría: línea desde la superficie (80) hasta el exterior (250)
+            const rayoGeo = new THREE.BufferGeometry();
+            const puntos = new Float32Array([
+                dirX * 80,  dirY * 80,  dirZ * 80,   // origen en la superficie
+                dirX * 250, dirY * 250, dirZ * 250   // extremo lejos
+            ]);
+            rayoGeo.setAttribute('position', new THREE.BufferAttribute(puntos, 3));
+            const colorIdx = i % 3;
+            const rayoMat = new THREE.LineBasicMaterial({
+                color: coloresRayosBase[colorIdx],
+                transparent: true,
+                opacity: 0.0,
+                blending: THREE.AdditiveBlending
+            });
+            const rayo = new THREE.Line(rayoGeo, rayoMat);
+            rayo.userData = {
+                colorIdx: colorIdx,
+                fase: Math.random() * Math.PI * 2,  // fase aleatoria para parpadeo
+                velocidadParpadeo: 1.5 + Math.random() * 1.5
+            };
+            rayosDisco.push(rayo);
+            planetGroup.add(rayo);
+        }
+
+        // Anillo decorativo sutil
+        const ringGeo = new THREE.RingGeometry(110, 130, 64, 1);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x4466aa, side: THREE.DoubleSide, transparent: true, opacity: 0.25
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2.5;
+        planetGroup.add(ring);
+
+        // === LETRERO NEON "BIENVENIDOS A DISCOTOPIA" curvado sobre el planeta, SIN FONDO ===
+        // Cada letra se renderiza en su propio canvas y se coloca curvada sobre la superficie del planeta
+        const textoLetrero = 'BIENVENIDOS A DISCOTOPIA';
+        const coloresNeon = ['#ff00aa', '#00ffff', '#ffdd00']; // rosa, cyan, amarillo
+        const materialesNeon = []; // para compatibilidad con animación
+        const letreroGroup = new THREE.Group();
+        const letrasLetrero = []; // array de {mesh, canvas, ctx, texture, colorIdx}
+        const radioCurvatura = 82; // ligeramente fuera del planeta (radio 80)
+
+        // Crear una letra individual
+        function crearLetra(ch, colorIdx, anguloLetra) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const texture = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            const geo = new THREE.PlaneGeometry(17, 17); // un poquito más grandes
+            const mesh = new THREE.Mesh(geo, mat);
+            // Posicionar la letra curvada sobre el planeta (ecuador, frente)
+            mesh.position.set(
+                Math.sin(anguloLetra) * radioCurvatura,
+                0,
+                Math.cos(anguloLetra) * radioCurvatura
+            );
+            // Orientar la letra para que mire hacia afuera del planeta (radial)
+            mesh.lookAt(
+                Math.sin(anguloLetra) * 200,
+                0,
+                Math.cos(anguloLetra) * 200
+            );
+            // Datos para animación
+            const data = {
+                mesh: mesh,
+                canvas: canvas,
+                ctx: ctx,
+                texture: texture,
+                colorIdx: colorIdx,
+                ch: ch,
+                anguloLetra: anguloLetra
+            };
+            letrasLetrero.push(data);
+            letreroGroup.add(mesh);
+            return data;
+        }
+
+        // Calcular ángulos para distribuir las letras curvadas alrededor del ecuador frontal
+        // El arco total cubre aprox 60 grados centrados en Z+ (frente a la cámara)
+        const numLetras = textoLetrero.length;
+        let letrasEfectivas = 0;
+        for (let i = 0; i < textoLetrero.length; i++) {
+            if (textoLetrero[i] !== ' ') letrasEfectivas++;
+        }
+        const arcoTotal = Math.PI * 1.2; // 216 grados de arco (más espacio para letras más grandes)
+        const anguloInicial = -arcoTotal / 2;
+        // Calcular posiciones efectivas considerando espacios extra (2 posiciones por espacio)
+        let posicionesEfectivas = 0;
+        for (let i = 0; i < textoLetrero.length; i++) {
+            if (textoLetrero[i] === ' ') posicionesEfectivas += 2;
+            else posicionesEfectivas++;
+        }
+        const pasoAngulo = arcoTotal / (posicionesEfectivas - 1);
+        let idxLetra = 0;
+        for (let i = 0; i < textoLetrero.length; i++) {
+            const ch = textoLetrero[i];
+            if (ch === ' ') {
+                idxLetra += 2; // saltar 2 posiciones para mayor separación entre palabras
+                continue;
+            }
+            const anguloLetra = anguloInicial + idxLetra * pasoAngulo;
+            crearLetra(ch, i % 3, anguloLetra);
+            idxLetra++;
+        }
+
+        // Función para dibujar cada letra con efecto neon
+        function dibujarLetrasLetrero(tiempo) {
+            for (let i = 0; i < letrasLetrero.length; i++) {
+                const data = letrasLetrero[i];
+                const ctx = data.ctx;
+                ctx.clearRect(0, 0, 256, 256);
+                // Color de esta letra
+                const color = coloresNeon[data.colorIdx];
+                // Pulso de brillo
+                const pulso = 0.7 + Math.sin(tiempo * 3 + i * 0.5) * 0.3;
+                // Dibujar la letra con glow neon (sin fondo)
+                ctx.font = 'bold 160px "Arial Black", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Sombra glow (neon) - varias pasadas para más brillo
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 25 * pulso;
+                ctx.fillStyle = color;
+                ctx.fillText(data.ch, 128, 128);
+                ctx.shadowBlur = 50 * pulso;
+                ctx.fillText(data.ch, 128, 128);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#ffffff'; // núcleo blanco brillante
+                ctx.fillText(data.ch, 128, 128);
+                data.texture.needsUpdate = true;
+            }
+        }
+        dibujarLetrasLetrero(0);
+
+        planetGroup.add(letreroGroup);
+
+        // Luz puntual extra para iluminar el letrero neon
+        const luzLetrero = new THREE.PointLight(0xff66cc, 2, 100);
+        luzLetrero.position.set(0, 0, 100);
+        planetGroup.add(luzLetrero);
+
+        planetGroup.position.set(-30, 15, -600); // más cerca para que se ilumine antes
+        scene.add(planetGroup);
+
+        // 5.5 FONDO DECORATIVO: NEBULOSAS Y GALAXIAS
+        // Usamos sprites con texturas generadas proceduralmente (canvas) para que se vean etéreas.
+
+        function crearTexturaNebulosa(color1, color2) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 512, 512);
+            // SOLO manchas grandes y muy suaves (sin brillos puntuales)
+            for (let i = 0; i < 8; i++) {
+                const x = 256 + (Math.random() - 0.5) * 200;
+                const y = 256 + (Math.random() - 0.5) * 200;
+                const r = Math.random() * 200 + 120;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+                const color = Math.random() < 0.5 ? color1 : color2;
+                grad.addColorStop(0, color + '20');
+                grad.addColorStop(0.5, color + '08');
+                grad.addColorStop(1, color + '00');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function crearTexturaGalaxia(colorNucleo, colorBrazo) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 512, 512);
+            // Núcleo grande y muy difuso (sin puntos brillantes)
+            const nucGrad = ctx.createRadialGradient(256, 256, 0, 256, 256, 150);
+            nucGrad.addColorStop(0, colorNucleo + '30');
+            nucGrad.addColorStop(0.5, colorNucleo + '10');
+            nucGrad.addColorStop(1, colorNucleo + '00');
+            ctx.fillStyle = nucGrad;
+            ctx.beginPath();
+            ctx.arc(256, 256, 150, 0, Math.PI * 2);
+            ctx.fill();
+            // Disco elíptico muy suave (sin puntos ni brazos)
+            ctx.save();
+            ctx.translate(256, 256);
+            ctx.scale(1.5, 0.6);
+            const diskGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 200);
+            diskGrad.addColorStop(0, colorBrazo + '18');
+            diskGrad.addColorStop(0.5, colorBrazo + '08');
+            diskGrad.addColorStop(1, colorBrazo + '00');
+            ctx.fillStyle = diskGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 200, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Nebulosa 1 (rosada/púrpura) - esquina superior izquierda
+        const nebulosa1 = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: crearTexturaNebulosa('#0a1a3a', '#152545'),
+            transparent: true,
+            opacity: 0.35,
+            depthWrite: false,
+            fog: false,
+            blending: THREE.NormalBlending
+        }));
+        nebulosa1.scale.set(550, 550, 1);
+        nebulosa1.position.set(-200, 100, -750);
+        scene.add(nebulosa1);
+
+        // Nebulosa 2 (azul/cian) - esquina inferior derecha
+        const nebulosa2 = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: crearTexturaNebulosa('#0f2040', '#1a3060'),
+            transparent: true,
+            opacity: 0.32,
+            depthWrite: false,
+            fog: false,
+            blending: THREE.NormalBlending
+        }));
+        nebulosa2.scale.set(600, 600, 1);
+        nebulosa2.position.set(220, -80, -700);
+        scene.add(nebulosa2);
+
+        // Nebulosa 3 (naranja/amarilla, más tenue) - centro-derecha
+        const nebulosa3 = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: crearTexturaNebulosa('#102540', '#1f3055'),
+            transparent: true,
+            opacity: 0.28,
+            depthWrite: false,
+            fog: false,
+            blending: THREE.NormalBlending
+        }));
+        nebulosa3.scale.set(480, 480, 1);
+        nebulosa3.position.set(140, 70, -820);
+        scene.add(nebulosa3);
+
+        // Galaxia espiral 1 - esquina superior derecha, inclinada
+        const galaxia1 = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: crearTexturaGalaxia('#1a2a55', '#2a4070'),
+            transparent: true,
+            opacity: 0.30,
+            depthWrite: false,
+            fog: false,
+            blending: THREE.NormalBlending
+        }));
+        galaxia1.scale.set(220, 220, 1);
+        galaxia1.position.set(230, 120, -950);
+        scene.add(galaxia1);
+
+        // Galaxia espiral 2 - esquina inferior izquierda, más pequeña
+        const galaxia2 = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: crearTexturaGalaxia('#152545', '#2a3565'),
+            transparent: true,
+            opacity: 0.28,
+            depthWrite: false,
+            fog: false,
+            blending: THREE.NormalBlending
+        }));
+        galaxia2.scale.set(160, 160, 1);
+        galaxia2.position.set(-210, -100, -900);
+        scene.add(galaxia2);
+
+        // 6. CAMPO DE ESTRELLAS
+        // 6a. Estrellas lejanas decorativas (casi estáticas, para fondo bello)
+        const farStarGeometry = new THREE.BufferGeometry();
+        const farStarVertices = [];
+        const farStarColors = [];
+        for (let i = 0; i < 600; i++) {
+            farStarVertices.push((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 400, -Math.random() * 1200 - 100);
+            const tono = Math.random();
+            if (tono < 0.6) farStarColors.push(0.5, 0.6, 0.8);       // azul grisáceo tenue
+            else if (tono < 0.8) farStarColors.push(0.4, 0.55, 0.75); // azul más oscuro
+            else if (tono < 0.95) farStarColors.push(0.6, 0.6, 0.55); // amarillo tenue
+            else farStarColors.push(0.55, 0.45, 0.5);                 // rosa grisáceo
+        }
+        farStarGeometry.setAttribute('position', new THREE.Float32BufferAttribute(farStarVertices, 3));
+        farStarGeometry.setAttribute('color', new THREE.Float32BufferAttribute(farStarColors, 3));
+        const farStarMaterial = new THREE.PointsMaterial({
+            size: 0.6, sizeAttenuation: false, vertexColors: true,
+            transparent: true, opacity: 0.35, fog: false
+        });
+        const farStars = new THREE.Points(farStarGeometry, farStarMaterial);
+        scene.add(farStars);
+
+        // 6b. Estrellas medianas (movimiento muy lento, dan profundidad)
+        const midStarGeometry = new THREE.BufferGeometry();
+        const midStarVertices = [];
+        for (let i = 0; i < 120; i++) {
+            midStarVertices.push((Math.random() - 0.5) * 400, (Math.random() - 0.5) * 250, -Math.random() * 1000 - 50);
+        }
+        midStarGeometry.setAttribute('position', new THREE.Float32BufferAttribute(midStarVertices, 3));
+        // Estrellas MEDIANAS (profundidad): brillo intermedio
+        const midStarMaterial = new THREE.PointsMaterial({
+            color: 0x88aabb,
+            size: 1.0,
+            sizeAttenuation: false,
+            transparent: true,
+            opacity: 0.5,
+            fog: false
+        });
+        const midStars = new THREE.Points(midStarGeometry, midStarMaterial);
+        scene.add(midStars);
+
+        // 6c. Estrellas cercanas (sensación de velocidad)
+        const starGeometry = new THREE.BufferGeometry();
+        const starVertices = [];
+        for (let i = 0; i < 120; i++) {
+            starVertices.push((Math.random() - 0.5) * 300, (Math.random() - 0.5) * 200, -Math.random() * 1000);
+        }
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        // Estrellas de PRIMER PLANO (cercanas): pocas pero brillantes, sensación de velocidad
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 1.2,
+            sizeAttenuation: false,
+            transparent: true,
+            opacity: 0.9,
+            fog: true
+        });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // 7. ASTEROIDES
+        const asteroids = [];
+        const asteroidMat = new THREE.MeshStandardMaterial({ color: 0xffcc88, flatShading: true, emissive: 0x884422, emissiveIntensity: 0.9 });
+        // Material para el asteroide verde de vida (1UP)
+        const asteroidLifeMat = new THREE.MeshStandardMaterial({
+            color: 0x00ff44,
+            flatShading: true,
+            emissive: 0x00aa22,
+            emissiveIntensity: 1.2
+        });
+        // Material para el asteroide azul de misil (más grande y luminoso)
+        const asteroidMissileMat = new THREE.MeshStandardMaterial({
+            color: 0x3399ff,
+            flatShading: true,
+            emissive: 0x0066ff,
+            emissiveIntensity: 1.5
+        });
+        for(let i=0; i<25; i++) {
+            const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.random()*0.6 + 0.4, 0), asteroidMat);
+            // Reducimos el rango de aparición para que vengan más cerca de la nave
+            ast.position.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 7, -Math.random() * 400 - 20);
+            ast.rotationSpeed = { x: Math.random() * 0.05, y: Math.random() * 0.05 };
+            asteroids.push(ast);
+            scene.add(ast);
+        }
+
+        // ASTEROIDE GIGANTE DE PRUEBA - viene directo al centro para verificar colisión
+        const asteroidePrueba = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 0), asteroidMat);
+        asteroidePrueba.position.set(0.5, 0, -60);
+
+        // 7.5 SISTEMA DE DISPAROS (láseres)
+        const bullets = [];
+        const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const bulletLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        function disparar() {
+            if (!shipAlive) return;
+            // Limitar cadencia de disparo
+            const ahora = performance.now() / 1000;
+            if (ahora - ultimoDisparo < CADENCIA_DISPARO) return;
+            ultimoDisparo = ahora;
+            // Sonido de disparo
+            playSfx(sfxDisparo);
+            // Dos balas: una desde cada ala de la nave
+            const offsetAla = 1.0;
+            const geo = new THREE.CylinderGeometry(0.08, 0.08, 1.0, 6);
+            geo.rotateX(Math.PI / 2);
+
+            // Bala ala izquierda
+            const bulletL = new THREE.Mesh(geo, bulletMat);
+            bulletL.position.set(ship.position.x - offsetAla, ship.position.y, ship.position.z - 0.8);
+            bulletL.userData.velocity = -80;
+            bullets.push(bulletL);
+            scene.add(bulletL);
+
+            // Bala ala derecha
+            const bulletR = new THREE.Mesh(geo, bulletMat);
+            bulletR.position.set(ship.position.x + offsetAla, ship.position.y, ship.position.z - 0.8);
+            bulletR.userData.velocity = -80;
+            bullets.push(bulletR);
+            scene.add(bulletR);
+        }
+
+        function actualizarBalas(delta) {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.position.z += b.userData.velocity * delta;
+                if (b.position.z < -200) {
+                    scene.remove(b);
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                // Comprobar colisión bala-asteroide
+                for (let j = 0; j < asteroids.length; j++) {
+                    const ast = asteroids[j];
+                    if (!asteroidesActivos) break;
+                    if (ast.position.z < -200 || ast.position.z > 5) continue;
+                    const dx = ast.position.x - b.position.x;
+                    const dy = ast.position.y - b.position.y;
+                    const dz = ast.position.z - b.position.z;
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    const radioAst = ast.geometry.parameters.radius || 1;
+                    if (dist < radioAst + 0.3) {
+                        // ¡Bala impacta asteroide!
+                        // Si es asteroide de vida: sumar 1 de vida y puntos extra
+                        if (ast.userData.esVida) {
+                            crearExplosionPequena(ast.position.x, ast.position.y, ast.position.z);
+                            playSfx(sfxVida); // sonido de vida extra
+                            crearVidaFlotante(ast.position, 1);
+                            if (vidaNave < VIDA_MAX) {
+                                setTimeout(() => {
+                                    if (vidaNave < VIDA_MAX) {
+                                        vidaNave++;
+                                        actualizarBarraVida();
+                                    }
+                                }, 800);
+                            }
+                        } else if (ast.userData.esMisil) {
+                            // ¡Asteroide azul de misil! Sumar +1 misil
+                            crearExplosionPequena(ast.position.x, ast.position.y, ast.position.z);
+                            playSfx(sfxVida); // mismo sonido de bonus
+                            crearMisilFlotante(ast.position);
+                            // Puntos bonus por agarrar vida
+                            sumarPuntos(100);
+                        } else {
+                            crearExplosionPequena(ast.position.x, ast.position.y, ast.position.z);
+                            playSfx(sfxExplosion); // sonido de explosión de asteroide
+                            // Sumar puntos por destruir
+                            if (!ast.userData.contado) {
+                                sumarPuntos(PUNTOS_DESTRUIR);
+                                ast.userData.contado = true;
+                            }
+                        }
+                        // Reaparecer asteroide lejos
+                        ast.position.z = -400 - Math.random() * 100;
+                        ast.position.x = (Math.random() - 0.5) * 18;
+                        ast.position.y = (Math.random() - 0.5) * 10;
+                        ast.userData.contado = false;
+                        scene.remove(b);
+                        bullets.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ============================================================
+        // SISTEMA DE NAVES ENEMIGAS
+        // ============================================================
+        // Nombres xenomorfos aleatorios para las naves enemigas
+        const NOMBRES_XENOMORFOS = [
+            'ZORGAX', 'KRYTHOR', 'XENOMORFO PRIME', 'VEX_N7', 'MORTAX',
+            'NEBULON', 'XARQUON', 'DRAGOR', 'THANOS-X', 'VORTEX-K',
+            'GORATH', 'NYRAX', 'PYRON', 'SLITHAR', 'WRAITH-9'
+        ];
+        const navesEnemigas = [];
+        const balasEnemigas = [];
+        // Nave enemiga BLANCA PLATA brillante
+        const naveEnemigaMatRojo = new THREE.MeshStandardMaterial({ color: 0xeeeeee, flatShading: true, emissive: 0x888899, emissiveIntensity: 1.0, metalness: 0.8, roughness: 0.3 });
+        const naveEnemigaMatNegro = new THREE.MeshStandardMaterial({ color: 0x220000, flatShading: true });
+        const naveEnemigaMatVidrio = new THREE.MeshStandardMaterial({ color: 0xff6644, flatShading: true, emissive: 0x440000, emissiveIntensity: 0.6 });
+        // Balas enemigas: rojo más claro (rosado brillante)
+        const balaEnemigaMat = new THREE.MeshBasicMaterial({ color: 0xff6688 });
+
+        // Crea una nave enemiga: 3 disparos para destruir, te persigue y dispara
+        function crearNaveEnemiga(nivel) {
+            const nave = new THREE.Group();
+            // Cuerpo principal: cono invertido
+            // Nave MÁS GRANDE para mejor visibilidad
+            const cuerpoGeo = new THREE.ConeGeometry(1.2, 3.0, 6); // más grande
+            cuerpoGeo.rotateX(Math.PI); // punta hacia el jugador (+Z)
+            const cuerpo = new THREE.Mesh(cuerpoGeo, naveEnemigaMatRojo);
+            nave.add(cuerpo);
+            // Cabina más grande
+            const cabinaGeo = new THREE.SphereGeometry(0.6, 6, 6);
+            cabinaGeo.scale(1, 0.6, 1.3);
+            const cabina = new THREE.Mesh(cabinaGeo, naveEnemigaMatVidrio);
+            cabina.position.set(0, 0.25, 0.5);
+            nave.add(cabina);
+            // 2 alas más grandes
+            const alaGeo = new THREE.BoxGeometry(3.0, 0.2, 1.2);
+            const alaIzq = new THREE.Mesh(alaGeo, naveEnemigaMatNegro);
+            alaIzq.position.set(-1.5, 0, 0);
+            nave.add(alaIzq);
+            const alaDer = new THREE.Mesh(alaGeo, naveEnemigaMatNegro);
+            alaDer.position.set(1.5, 0, 0);
+            nave.add(alaDer);
+            // Luces rojas brillantes en las puntas de las alas
+            const luzAlaGeo = new THREE.SphereGeometry(0.25, 6, 6);
+            const luzAlaMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+            const luzIzq = new THREE.Mesh(luzAlaGeo, luzAlaMat);
+            luzIzq.position.set(-3.0, 0, 0);
+            nave.add(luzIzq);
+            const luzDer = new THREE.Mesh(luzAlaGeo, luzAlaMat);
+            luzDer.position.set(3.0, 0, 0);
+            nave.add(luzDer);
+            // Luz central brillante en la punta (faro)
+            const faroGeo = new THREE.SphereGeometry(0.35, 6, 6);
+            const faroMat = new THREE.MeshBasicMaterial({ color: 0xff3333 }); // faro rojo brillante
+            const faro = new THREE.Mesh(faroGeo, faroMat);
+            faro.position.set(0, 0, 1.7);
+            nave.add(faro);
+            // Punto de luz para iluminar la nave
+            const luzNave = new THREE.PointLight(0xff4466, 2.5, 12); // luz rosa más intensa
+            luzNave.position.set(0, 0, 0);
+            nave.add(luzNave);
+
+            // Posición inicial: lejos, alineada con la nave del jugador +- algo
+            nave.position.set(
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 6,
+                -150 - Math.random() * 50
+            );
+            nave.userData = {
+                // Vida escalada MÁS ALTA: nivel 1 = 10 disparos, sube 3 por nivel (máximo 25)
+                // ¡Cuesta muchísimo destruirlas en niveles altos!
+                vida: Math.min(25, 10 + (nivel - 1) * 3),
+                vidaMax: Math.min(25, 10 + (nivel - 1) * 3),
+                velocidadZ: 28 + Math.random() * 10, // más agresivos: avanza rápido
+                velX: 0,
+                velY: 0,
+                tiempoCambioDireccion: 0,
+                tiempoUltimoDisparo: 0,
+                cadenciaDisparo: Math.max(0.25, 0.9 - (nivel - 1) * 0.08), // dispara muy seguido
+                nivel: nivel,
+                rotacionVel: 0.02 + Math.random() * 0.02
+            };
+            // Crear barra de vida ENORME sobre la nave enemiga (con sprite de texto)
+            const barraVidaGeo = new THREE.PlaneGeometry(7, 1.2);
+            const barraVidaMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+            const barraVida = new THREE.Mesh(barraVidaGeo, barraVidaMat);
+            barraVida.position.set(nave.position.x, nave.position.y + 3.5, nave.position.z);
+            nave.userData.barraVida = barraVida;
+            scene.add(barraVida);
+
+            // Fondo oscuro detrás de la barra
+            const barraFondoGeo = new THREE.PlaneGeometry(7.5, 1.6);
+            const barraFondoMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+            const barraFondo = new THREE.Mesh(barraFondoGeo, barraFondoMat);
+            barraFondo.position.set(nave.position.x, nave.position.y + 3.5, nave.position.z - 0.01);
+            nave.userData.barraFondo = barraFondo;
+            scene.add(barraFondo);
+
+            // Texto con nombre del xenomorfo y vida numérica (canvas texture)
+            const textoCanvas = document.createElement('canvas');
+            textoCanvas.width = 1024; textoCanvas.height = 256;
+            const textoCtx = textoCanvas.getContext('2d');
+            const textoTextura = new THREE.CanvasTexture(textoCanvas);
+            const textoMat = new THREE.MeshBasicMaterial({ map: textoTextura, transparent: true, side: THREE.DoubleSide });
+            const textoGeo = new THREE.PlaneGeometry(8, 2);
+            const textoMesh = new THREE.Mesh(textoGeo, textoMat);
+            textoMesh.position.set(nave.position.x, nave.position.y + 3.5, nave.position.z + 0.01);
+            nave.userData.textoMesh = textoMesh;
+            nave.userData.textoCanvas = textoCanvas;
+            nave.userData.textoCtx = textoCtx;
+            nave.userData.textoTextura = textoTextura;
+            scene.add(textoMesh);
+
+            // Función para actualizar el texto del canvas
+            nave.userData.actualizarTexto = function() {
+                const ctx = nave.userData.textoCtx;
+                ctx.clearRect(0, 0, 1024, 256);
+                // Nombre del xenomorfo (MUY GRANDE, arriba)
+                ctx.font = 'bold 80px "Arial Black", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Sombra doble para que se lea de lejos
+                ctx.fillStyle = '#000000';
+                ctx.fillText(nave.userData.nombre, 514, 84);
+                ctx.fillText(nave.userData.nombre, 510, 80);
+                ctx.fillStyle = '#ff44aa';
+                ctx.fillText(nave.userData.nombre, 512, 82);
+                // Vida numérica (grande, abajo)
+                ctx.font = 'bold 60px "Arial Black", sans-serif';
+                ctx.fillStyle = '#000000';
+                ctx.fillText(nave.userData.vida + ' / ' + nave.userData.vidaMax, 514, 184);
+                ctx.fillText(nave.userData.vida + ' / ' + nave.userData.vidaMax, 510, 180);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(nave.userData.vida + ' / ' + nave.userData.vidaMax, 512, 182);
+                nave.userData.textoTextura.needsUpdate = true;
+            };
+
+            // Asignar nombre xenomorfo aleatorio PRIMERO
+            nave.userData.nombre = NOMBRES_XENOMORFOS[Math.floor(Math.random() * NOMBRES_XENOMORFOS.length)];
+
+            navesEnemigas.push(nave);
+            scene.add(nave);
+
+            // Actualizar texto inicial (después de tener nombre y vida)
+            nave.userData.actualizarTexto();
+        }
+
+        // Actualiza todas las naves enemigas: las mueve, persiguen al jugador, disparan
+        function actualizarNavesEnemigas(delta, time) {
+            for (let i = navesEnemigas.length - 1; i >= 0; i--) {
+                const nave = navesEnemigas[i];
+                const ud = nave.userData;
+
+                // === COMPORTAMIENTO: avanzar rápido y FRENAR frente al jugador ===
+                // Z objetivo: 20 unidades delante de la nave del jugador
+                const zObjetivo = ship.position.z - 20;
+                if (nave.position.z < zObjetivo - 2) {
+                    // Todavía lejos: avanza rápido
+                    nave.position.z += delta * ud.velocidadZ;
+                } else if (nave.position.z > zObjetivo + 2) {
+                    // Se pasó: retrocede
+                    nave.position.z -= delta * (ud.velocidadZ * 0.5);
+                } else {
+                    // En la zona de persecución: avanza muy lento (mantiene distancia)
+                    nave.position.z += delta * 1.5;
+                }
+
+                // Persecución lateral y vertical agresiva
+                ud.tiempoCambioDireccion += delta;
+                if (ud.tiempoCambioDireccion > 0.8) {
+                    ud.tiempoCambioDireccion = 0;
+                    const dx = ship.position.x - nave.position.x;
+                    const dy = ship.position.y - nave.position.y;
+                    ud.velX = dx * 1.0 + (Math.random() - 0.5) * 1.5;
+                    ud.velY = dy * 1.0 + (Math.random() - 0.5) * 1.5;
+                }
+                nave.position.x += delta * ud.velX;
+                nave.position.y += delta * ud.velY;
+                nave.position.x = Math.max(-9, Math.min(9, nave.position.x));
+                nave.position.y = Math.max(-5, Math.min(5, nave.position.y));
+
+                // Rotación: la nave apunta hacia el jugador (mirando hacia +Z)
+                nave.rotation.z = Math.sin(time * 3) * 0.15;
+                nave.rotation.x = -ud.velY * 0.2;
+                nave.rotation.y = ud.velX * 0.2;
+
+                // Disparar al jugador: RÁFAGA de 3 balas con pequeña separación
+                if (shipAlive) {
+                    ud.tiempoUltimoDisparo += delta;
+                    if (ud.tiempoUltimoDisparo > ud.cadenciaDisparo) {
+                        ud.tiempoUltimoDisparo = 0;
+                        // Ráfaga de 3 disparos con 100ms de separación
+                        for (let r = 0; r < 3; r++) {
+                            setTimeout(() => {
+                                if (shipAlive && navesEnemigas.indexOf(nave) !== -1) {
+                                    dispararBalaEnemiga(nave);
+                                }
+                            }, r * 120);
+                        }
+                    }
+                }
+
+                // === Actualizar barra de vida ENORME, fondo y texto ===
+                if (ud.barraVida) {
+                    const posY = nave.position.y + 3.5;
+                    ud.barraVida.position.set(nave.position.x, posY, nave.position.z);
+                    ud.barraFondo.position.set(nave.position.x, posY, nave.position.z - 0.01);
+                    ud.textoMesh.position.set(nave.position.x, posY, nave.position.z + 0.01);
+                    // Hacer que el texto y la barra siempre miren a la cámara
+                    ud.barraVida.lookAt(camera.position);
+                    ud.barraFondo.lookAt(camera.position);
+                    ud.textoMesh.lookAt(camera.position);
+                    const porcentaje = ud.vida / ud.vidaMax;
+                    // Escalar desde la izquierda (anclar a la izquierda)
+                    ud.barraVida.scale.x = Math.max(0.01, porcentaje);
+                    ud.barraVida.position.x = nave.position.x - (1 - porcentaje) * 3.5;
+                    // Color según vida
+                    if (porcentaje > 0.6) ud.barraVida.material.color.setHex(0x00ff44);
+                    else if (porcentaje > 0.3) ud.barraVida.material.color.setHex(0xffaa00);
+                    else ud.barraVida.material.color.setHex(0xff2222);
+                }
+
+                // Solo eliminar si se escapó muy lejos (caso raro)
+                if (nave.position.z > 50) {
+                    if (ud.barraVida) scene.remove(ud.barraVida);
+                    if (ud.barraFondo) scene.remove(ud.barraFondo);
+                    if (ud.textoMesh) scene.remove(ud.textoMesh);
+                    scene.remove(nave);
+                    navesEnemigas.splice(i, 1);
+                }
+            }
+        }
+
+        // Crea una bala enemiga dirigida hacia la nave del jugador
+        function dispararBalaEnemiga(nave) {
+            const geo = new THREE.SphereGeometry(0.18, 6, 6);
+            const bala = new THREE.Mesh(geo, balaEnemigaMat);
+            bala.position.set(nave.position.x, nave.position.y, nave.position.z + 0.7);
+            // Vector hacia la nave del jugador
+            const dx = ship.position.x - nave.position.x;
+            const dy = ship.position.y - nave.position.y;
+            const dz = ship.position.z - nave.position.z;
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const velocidadBala = 35;
+            bala.userData = {
+                velX: (dx / dist) * velocidadBala,
+                velY: (dy / dist) * velocidadBala,
+                velZ: (dz / dist) * velocidadBala
+            };
+            balasEnemigas.push(bala);
+            scene.add(bala);
+        }
+
+        // Actualiza las balas enemigas y comprueba colisión con la nave del jugador
+        function actualizarBalasEnemigas(delta) {
+            for (let i = balasEnemigas.length - 1; i >= 0; i--) {
+                const b = balasEnemigas[i];
+                b.position.x += delta * b.userData.velX;
+                b.position.y += delta * b.userData.velY;
+                b.position.z += delta * b.userData.velZ;
+                // Eliminar si sale del rango
+                if (b.position.z > 20 || b.position.z < -200 || Math.abs(b.position.x) > 30 || Math.abs(b.position.y) > 20) {
+                    scene.remove(b);
+                    balasEnemigas.splice(i, 1);
+                    continue;
+                }
+                // Comprobar colisión con la nave del jugador
+                if (shipAlive && tiempoInvulnerable <= 0) {
+                    const dx = b.position.x - ship.position.x;
+                    const dy = b.position.y - ship.position.y;
+                    const dz = b.position.z - ship.position.z;
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    if (dist < COLLISION_RADIUS + 0.2) {
+                        // ¡Bala enemiga impacta la nave del jugador!
+                        crearExplosionPequena(b.position.x, b.position.y, b.position.z);
+                        playSfx(sfxExplosion);
+                        scene.remove(b);
+                        balasEnemigas.splice(i, 1);
+                        // Simular choque usando recibirImpacto (pierde 1 vida)
+                        recibirImpactoBala();
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // Función similar a recibirImpacto pero sin mover asteroide (porque es una bala)
+        function recibirImpactoBala() {
+            if (!shipAlive || tiempoInvulnerable > 0) return;
+            vidaNave--;
+            actualizarBarraVida();
+            crearExplosionPequena(ship.position.x, ship.position.y, ship.position.z);
+            playSfx(sfxExplosion);
+            if (vidaNave <= 0) {
+                destruirNave();
+            } else {
+                tiempoInvulnerable = 1.5;
+            }
+        }
+
+        // Comprueba colisión entre balas del jugador y naves enemigas
+        function comprobarBalasVsNavesEnemigas() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                for (let j = navesEnemigas.length - 1; j >= 0; j--) {
+                    const nave = navesEnemigas[j];
+                    const dx = nave.position.x - b.position.x;
+                    const dy = nave.position.y - b.position.y;
+                    const dz = nave.position.z - b.position.z;
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    if (dist < 1.4) { // radio aumentado por el nuevo tamaño
+                        // ¡Bala impacta nave enemiga!
+                        nave.userData.vida--;
+                        scene.remove(b);
+                        bullets.splice(i, 1);
+                        // Actualizar texto de la barra con la nueva vida
+                        if (nave.userData.actualizarTexto) nave.userData.actualizarTexto();
+                        // Pequeña explosión de impacto
+                        crearExplosionPequena(b.position.x, b.position.y, b.position.z);
+                        if (nave.userData.vida <= 0) {
+                            // ¡Nave enemiga destruida!
+                            // Explosión GRANDE con partículas que vuelan al puntaje
+                            const puntosNave = 200 + nave.userData.vidaMax * 50;
+                            crearExplosionGrandeEnemigo(nave.position, puntosNave);
+                            playSfx(sfxExplosion);
+                            // Sumar baja al contador de rango militar
+                            sumarBajaEnemigo();
+                            // Bonus: +2 de vida por destruir una nave enemiga (capado al máximo)
+                            // Crear +2 flotante que viaja a la barra de vida
+                            crearVidaFlotante(nave.position, 2);
+                            const vidaAntes = vidaNave;
+                            // Sumar vida con retraso para sincronizar con la llegada del +2
+                            setTimeout(() => {
+                                const vidaAntesDelay = vidaNave;
+                                vidaNave = Math.min(VIDA_MAX, vidaNave + 2);
+                                if (vidaNave > vidaAntesDelay) {
+                                    actualizarBarraVida();
+                                    playSfx(sfxVida);
+                                }
+                            }, 800);
+                            if (nave.userData.barraVida) scene.remove(nave.userData.barraVida);
+                            if (nave.userData.barraFondo) scene.remove(nave.userData.barraFondo);
+                            if (nave.userData.textoMesh) scene.remove(nave.userData.textoMesh);
+                            scene.remove(nave);
+                            navesEnemigas.splice(j, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Comprueba colisión entre nave del jugador y naves enemigas (choque físico)
+        function comprobarNavesEnemigasVsJugador() {
+            if (!shipAlive || tiempoInvulnerable > 0) return;
+            for (let i = 0; i < navesEnemigas.length; i++) {
+                const nave = navesEnemigas[i];
+                if (nave.position.z < -10 || nave.position.z > 5) continue;
+                const dx = nave.position.x - ship.position.x;
+                const dy = nave.position.y - ship.position.y;
+                const dz = nave.position.z - ship.position.z;
+                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                if (dist < COLLISION_RADIUS + 1.2) { // radio aumentado por el nuevo tamaño
+                    // ¡Choque con nave enemiga! Daño masivo (2 vidas)
+                    crearExplosion(nave.position.x, nave.position.y, nave.position.z);
+                    playSfx(sfxExplosion);
+                    if (nave.userData.barraVida) scene.remove(nave.userData.barraVida);
+                    if (nave.userData.barraFondo) scene.remove(nave.userData.barraFondo);
+                    if (nave.userData.textoMesh) scene.remove(nave.userData.textoMesh);
+                    scene.remove(nave);
+                    navesEnemigas.splice(i, 1);
+                    // Quitar 2 vidas por choque con nave enemiga
+                    vidaNave = Math.max(0, vidaNave - 2);
+                    actualizarBarraVida();
+                    tiempoInvulnerable = 1.5;
+                    if (vidaNave <= 0) {
+                        destruirNave();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Limpiar todas las naves enemigas y sus balas (al cambiar de nivel o morir)
+        function limpiarNavesEnemigas() {
+            // Cancelar timeouts pendientes
+            if (window.intervalNaves) { clearTimeout(window.intervalNaves); window.intervalNaves = null; }
+            if (window.timeoutAviso) { clearTimeout(window.timeoutAviso); window.timeoutAviso = null; }
+            window.nivelNavesActivo = -1; // invalidar nivel actual
+            navesEnemigas.forEach(n => {
+                if (n.userData.barraVida) scene.remove(n.userData.barraVida);
+                if (n.userData.barraFondo) scene.remove(n.userData.barraFondo);
+                if (n.userData.textoMesh) scene.remove(n.userData.textoMesh);
+                scene.remove(n);
+            });
+            navesEnemigas.length = 0;
+            balasEnemigas.forEach(b => scene.remove(b));
+            balasEnemigas.length = 0;
+        }
+
+        function crearExplosionPequena(x, y, z) {
+            const numParticulas = 20;
+            for (let i = 0; i < numParticulas; i++) {
+                const geo = new THREE.IcosahedronGeometry(Math.random() * 0.1 + 0.04, 0);
+                const color = Math.random() < 0.5 ? 0xff8800 : 0xffff00;
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set(x, y, z);
+                p.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 5,
+                    (Math.random() - 0.5) * 5,
+                    (Math.random() - 0.5) * 5
+                );
+                p.userData.life = 0.6;
+                p.userData.maxLife = 0.6;
+                p.userData.isFlash = false;
+                explosionParticles.push(p);
+                scene.add(p);
+            }
+        } // Descentrado: muévete a la izquierda para esquivarlo
+        asteroidePrueba.rotationSpeed = { x: 0.02, y: 0.02 };
+        asteroids.push(asteroidePrueba);
+        scene.add(asteroidePrueba);
+
+
+        // === RANKING TOP 10 ===
+        const RANKING_DEFAULT = [
+            { nombre: 'AAA', puntos: 500, grado: 'TENIENTE' },
+            { nombre: 'BBB', puntos: 400, grado: 'SARGENTO' },
+            { nombre: 'CCC', puntos: 300, grado: 'SUBOFICIAL' },
+            { nombre: 'DDD', puntos: 200, grado: 'CADET' },
+            { nombre: 'EEE', puntos: 100, grado: 'CADET' }
+        ];
+        let ranking;
+        try {
+            const guardado = localStorage.getItem('rankingLunaErrante');
+            ranking = guardado ? JSON.parse(guardado) : RANKING_DEFAULT.slice();
+        } catch (e) {
+            ranking = RANKING_DEFAULT.slice();
+        }
+
+        function guardarRanking() {
+            try {
+                localStorage.setItem('rankingLunaErrante', JSON.stringify(ranking));
+            } catch (e) {
+                console.log('No se pudo guardar el ranking:', e);
+            }
+        }
+
+        function esTop10(puntos) {
+            if (ranking.length < 10) return true;
+            const minPuntos = Math.min(...ranking.map(r => r.puntos));
+            return puntos > minPuntos;
+        }
+
+        function agregarAlRanking(nombre, puntos, grado) {
+            ranking.push({ nombre: nombre.toUpperCase().substring(0, 10), puntos: puntos, grado: grado || 'CADET' });
+            ranking.sort((a, b) => b.puntos - a.puntos);
+            ranking = ranking.slice(0, 10);
+            guardarRanking();
+        }
+
+        function actualizarTop3HUD() {
+            const cont = document.getElementById('top3-lista');
+            if (!cont) return;
+            let html = '';
+            const colores = ['#ffdd44', '#cccccc', '#cc8855']; // oro, plata, bronce
+            for (let i = 0; i < 3; i++) {
+                const color = colores[i];
+                if (i < ranking.length) {
+                    const r = ranking[i];
+                    const grado = r.grado || 'CADET';
+                    html += '<div style="color:' + color + '; text-shadow: 1px 1px 0 #000; margin-bottom:3px;">';
+                    html += (i+1) + '. ' + r.nombre + ' ' + r.puntos;
+                    html += '<br><span style="color:#aaccff; font-size:0.85em; margin-left:12px;">' + grado + '</span>';
+                    html += '</div>';
+                } else {
+                    html += '<div style="color:' + color + '; opacity:0.4; margin-bottom:3px;">';
+                    html += (i+1) + '. --- 0';
+                    html += '<br><span style="color:#aaccff; font-size:0.85em; margin-left:12px;">CADET</span>';
+                    html += '</div>';
+                }
+            }
+            cont.innerHTML = html;
+        }
+
+        function actualizarRecordHUD() {
+            if (ranking.length === 0) {
+                document.getElementById('record-grado').textContent = '---';
+                document.getElementById('record-nombre').textContent = '---';
+                document.getElementById('record-puntos').textContent = '0';
+                return;
+            }
+            // El primer puesto es el puntaje máximo
+            const top = ranking[0];
+            document.getElementById('record-grado').textContent = top.grado || 'CADET';
+            document.getElementById('record-nombre').textContent = top.nombre;
+            document.getElementById('record-puntos').textContent = top.puntos;
+        }
+
+        function mostrarRanking(nuevoIdx) {
+            nuevoIdx = nuevoIdx || -1;
+            const lista = document.getElementById('ranking-lista');
+            let html = '';
+            for (let i = 0; i < 10; i++) {
+                if (i < ranking.length) {
+                    const esNuevo = i === nuevoIdx;
+                    const filaClass = esNuevo ? 'fila nuevo' : 'fila';
+                    const grado = ranking[i].grado || 'CADET';
+                    html += '<div class="' + filaClass + '">';
+                    html += '<span class="pos">' + (i+1) + '.</span>';
+                    html += '<span class="nom">' + ranking[i].nombre + '</span>';
+                    html += '<span class="grd">' + grado + '</span>';
+                    html += '<span class="pts">' + ranking[i].puntos + '</span>';
+                    html += '</div>';
+                } else {
+                    html += '<div class="fila vacia"><span class="pos">' + (i+1) + '.</span><span class="nom">-----</span><span class="grd">---</span><span class="pts">---</span></div>';
+                }
+            }
+            lista.innerHTML = html;
+        }
+
+        // 8.6 PANTALLA DE INICIO: cualquier tecla/click arranca el juego
+
+        // === SISTEMA DE RANGOS MILITARES ===
+        const RANGOS_MILITARES = [
+            { nombre: 'CADETE',             bajas: 0,  medallas: 1 },
+            { nombre: 'SUBOFICIAL',         bajas: 5,  medallas: 2 },
+            { nombre: 'SARGENTO',           bajas: 10, medallas: 3 },
+            { nombre: 'SUBTENIENTE',        bajas: 15, medallas: 4 },
+            { nombre: 'TENIENTE',           bajas: 20, medallas: 5 },
+            { nombre: 'CAPITAN',            bajas: 25, medallas: 6 },
+            { nombre: 'MAYOR',              bajas: 30, medallas: 7 },
+            { nombre: 'TTE. CORONEL',       bajas: 35, medallas: 8 },
+            { nombre: 'CORONEL',            bajas: 40, medallas: 9 },
+            { nombre: 'GENERAL DE BRIGADA', bajas: 50, medallas: 10 },
+            { nombre: 'GENERAL',            bajas: 60, medallas: 12 },
+            { nombre: 'AS DE COMBATE',      bajas: 75, medallas: 15 }
+        ];
+        let enemigosDestruidos = 0;
+
+        function obtenerRango() {
+            let rango = RANGOS_MILITARES[0];
+            let siguiente = null;
+            for (let i = 0; i < RANGOS_MILITARES.length; i++) {
+                if (enemigosDestruidos >= RANGOS_MILITARES[i].bajas) {
+                    rango = RANGOS_MILITARES[i];
+                    siguiente = RANGOS_MILITARES[i + 1] || null;
+                }
+            }
+            return { actual: rango, siguiente: siguiente };
+        }
+
+        function actualizarRangoHUD() {
+            const { actual, siguiente } = obtenerRango();
+            document.getElementById('rango-nombre').textContent = actual.nombre;
+            // Medallas: estrellas según el rango
+            let medallas = '';
+            for (let i = 0; i < actual.medallas; i++) medallas += '\u2605';
+            document.getElementById('rango-medallas').textContent = medallas;
+            // Progreso hacia el siguiente rango
+            if (siguiente) {
+                document.getElementById('rango-progreso').textContent = enemigosDestruidos + '/' + siguiente.bajas + ' BAJAS';
+            } else {
+                document.getElementById('rango-progreso').textContent = 'MAX RANGO!';
+            }
+        }
+
+        function sumarBajaEnemigo() {
+            const rangoAntes = obtenerRango().actual.nombre;
+            enemigosDestruidos++;
+            const rangoAhora = obtenerRango().actual.nombre;
+            if (rangoAntes !== rangoAhora) {
+                mostrarAscenso(rangoAhora);
+            }
+            actualizarRangoHUD();
+        }
+
+        function mostrarAscenso(nuevoRango) {
+            const aviso = document.getElementById('aviso-ascenso');
+            const texto = document.getElementById('ascenso-texto');
+            texto.textContent = 'ASCENSO: ' + nuevoRango;
+            aviso.style.display = 'block';
+            setTimeout(() => { aviso.style.display = 'none'; }, 3000);
+        }
+        const pantallaInicio = document.getElementById('pantalla-inicio');
+        function iniciarJuego() {
+            if (juegoIniciado) return;
+            juegoIniciado = true;
+            pantallaInicio.style.display = 'none';
+            // Mostrar HUD de nivel
+            const hudNivel = document.getElementById('hud-nivel');
+            if (hudNivel) hudNivel.style.display = 'block';
+            actualizarTop3HUD();
+            puntaje = 0;
+            document.getElementById('puntaje').textContent = '0';
+            enemigosDestruidos = 0;
+            actualizarBarraVida();
+            actualizarRangoHUD();
+            actualizarRecordHUD();
+            iniciarNivel(1);
+            iniciarMusica();
+            // Inicializar reproductor con la canción 1
+            document.getElementById('cancion-actual').textContent = '> ' + canciones[0].nombre.toUpperCase();
+            // Desbloquear efectos de sonido: reproducir y pausar silenciosamente
+            // Esto es necesario porque el navegador bloquea audio hasta interacción
+            [sfxDisparo, sfxExplosion, sfxGameOver, sfxVida].forEach(audio => {
+                audio.volume = 0;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    // Restaurar volumen real
+                    if (audio === sfxDisparo) audio.volume = 0.12;
+                    else if (audio === sfxExplosion) audio.volume = 0.24;
+                    else if (audio === sfxGameOver) audio.volume = 0.32;
+                    else if (audio === sfxVida) audio.volume = 0.32;
+                }).catch(err => console.log('Audio no disponible:', err));
+            });
+        }
+        // Usamos capture: true para que iniciarJuego se ejecute antes que iniciarMusica
+        window.addEventListener('keydown', iniciarJuego);
+        window.addEventListener('mousedown', iniciarJuego);
+        window.addEventListener('touchstart', iniciarJuego);
+
+        // 8. CONTROLES POR TECLADO
+        const clock = new THREE.Clock();
+        let targetX = 0, targetY = 0;
+        let shipAlive = true;
+        let ultimoDisparo = 0; // timestamp del último disparo
+        const CADENCIA_DISPARO = 0.18; // segundos entre disparos (mínimo)
+        let disparandoTeclado = false; // true mientras A o Space estén apretados
+        let disparandoMouse = false; // true mientras el click esté apretado
+        let puntaje = 0;
+        const PUNTOS_ESQUIVAR = 10;
+        const PUNTOS_DESTRUIR = 50;
+        let vidaNave = 5; // 5 choques antes de destruirse
+        const VIDA_MAX = 5;
+        let misilesDisponibles = 2; // contador de misiles (empieza en 2)
+        const MISILES_MAX = 5; // máximo de misiles
+        const misilesArray = []; // misiles activos en vuelo
+        let tiempoInvulnerable = 0; // tiempo de invulnerabilidad tras un choque
+        let tiempoGracia = 10;
+        let asteroidesActivos = false;
+        let juegoIniciado = false;
+        let nivelActual = 1;
+        let nivelSuperado = false; // true cuando se pasa el planeta
+        let planetaPasado = false; // para detectar cuando la nave rebasa el planeta
+        const COLLISION_RADIUS = 1.0; // Radio equilibrado: ni muy fácil ni muy difícil
+
+        const gameOverEl = document.getElementById('game-over');
+        // === EXPLOSIÓN GRANDE + PARTÍCULAS DE ARENA al puntaje ===
+        function crearExplosionGrandeEnemigo(pos3D, puntosTotales) {
+            // 1. Flash de pantalla
+            const flash = document.getElementById('flash-pantalla');
+            flash.classList.add('activo');
+            setTimeout(() => flash.classList.remove('activo'), 400);
+
+            // 2. Explosión 3D grande (más partículas que la normal)
+            crearExplosionGrande3D(pos3D);
+
+            // 3. Crear partículas de arena que vuelan al puntaje
+            const inicio = posicion3DaPantalla(pos3D);
+            // Posición del HUD de puntaje (esquina superior derecha)
+            const destinoX = window.innerWidth - 60;
+            const destinoY = 50;
+
+            const numParticulas = 30;
+            const tiempoViaje = 1500; // ms que tardan en llegar al destino
+            const tiempoEliminacion = 250; // ms extra antes de eliminarse
+            for (let i = 0; i < numParticulas; i++) {
+                setTimeout(() => {
+                    const p = document.createElement('div');
+                    p.className = 'particula-arena';
+                    // Posición inicial con dispersión alrededor del centro de la explosión
+                    const offsetX = (Math.random() - 0.5) * 80;
+                    const offsetY = (Math.random() - 0.5) * 80;
+                    p.style.left = (inicio.x + offsetX) + 'px';
+                    p.style.top = (inicio.y + offsetY) + 'px';
+                    // Tamaño aleatorio para variar
+                    const tam = 4 + Math.random() * 6;
+                    p.style.width = tam + 'px';
+                    p.style.height = tam + 'px';
+                    document.body.appendChild(p);
+
+                    // Forzar reflow
+                    p.offsetHeight;
+
+                    // Animar: viajar al puntaje con curva aleatoria
+                    const destX = destinoX + (Math.random() - 0.5) * 40;
+                    const destY = destinoY + (Math.random() - 0.5) * 20;
+                    p.style.left = destX + 'px';
+                    p.style.top = destY + 'px';
+                    p.style.transform = 'scale(0.3)';
+                    p.style.opacity = '0.4';
+
+                    // Cada partícula se elimina sola al llegar al destino
+                    setTimeout(() => {
+                        if (p.parentNode) p.remove();
+                    }, tiempoViaje + tiempoEliminacion);
+                }, i * 30); // stagger: cada partícula sale con 30ms de diferencia
+            }
+
+            // 4. Incrementar el puntaje número por número
+            const puntosPorParticula = Math.ceil(puntosTotales / numParticulas);
+            let puntosSumados = 0;
+            const contadorEl = document.getElementById('puntaje');
+            for (let i = 0; i < numParticulas; i++) {
+                setTimeout(() => {
+                    const esUltima = i === numParticulas - 1;
+                    const incremento = esUltima ? (puntosTotales - puntosSumados) : puntosPorParticula;
+                    puntosSumados += incremento;
+                    puntaje += incremento;
+                    contadorEl.textContent = puntaje;
+                    // Pulso del contador
+                    contadorEl.classList.remove('pulsando');
+                    void contadorEl.offsetWidth;
+                    contadorEl.classList.add('pulsando');
+                }, tiempoViaje + i * 50); // Las partículas tardan 1.5s en llegar, luego sube el contador
+            }
+        }
+
+        // Explosión 3D más grande que la normal (más partículas, más flash)
+        function crearExplosionGrande3D(pos3D) {
+            const numParticulas = 120; // el doble que la explosión normal
+            for (let i = 0; i < numParticulas; i++) {
+                const geo = new THREE.IcosahedronGeometry(Math.random() * 0.25 + 0.08, 0);
+                // Colores variados: naranja, amarillo, rojo, blanco
+                const colorPick = Math.random();
+                let color;
+                if (colorPick < 0.3) color = 0xff5500;
+                else if (colorPick < 0.6) color = 0xffaa00;
+                else if (colorPick < 0.85) color = 0xffff00;
+                else color = 0xffffff;
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set(pos3D.x, pos3D.y, pos3D.z);
+                // Velocidades en todas las direcciones (más rápidas que la normal)
+                p.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 16,
+                    (Math.random() - 0.5) * 16,
+                    (Math.random() - 0.5) * 16
+                );
+                p.userData.life = 2.0; // dura más
+                p.userData.maxLife = 2.0;
+                p.userData.isFlash = false;
+                explosionParticles.push(p);
+                scene.add(p);
+            }
+            // Flash de luz 3D grande
+            const flash3D = new THREE.PointLight(0xffaa44, 15, 40);
+            flash3D.position.set(pos3D.x, pos3D.y, pos3D.z);
+            flash3D.userData.life = 0.6;
+            flash3D.userData.maxLife = 0.6;
+            flash3D.userData.isFlash = true;
+            explosionParticles.push(flash3D);
+            scene.add(flash3D);
+        }
+
+        // === ANIMACIÓN +1 MISIL que viaja al contador de misiles ===
+        // Capar misiles al máximo
+        function sumarMisil() {
+            if (misilesDisponibles < MISILES_MAX) {
+                misilesDisponibles++;
+                actualizarMisilesHUD();
+            }
+        }
+
+        function crearMisilFlotante(pos3D) {
+            const inicio = posicion3DaPantalla(pos3D);
+            // Posición destino: el HUD de misiles (debajo de la barra de vida)
+            const destinoX = 120;
+            const destinoY = 150;
+
+            const el = document.createElement('div');
+            el.className = 'vida-flotante';
+            el.textContent = '+1 MISIL';
+            el.style.color = '#3399ff';
+            el.style.textShadow = '0 0 10px #0066ff, 0 0 20px #3399ff, 2px 2px 0 #001144';
+            el.style.left = inicio.x + 'px';
+            el.style.top = inicio.y + 'px';
+            document.body.appendChild(el);
+            el.offsetHeight;
+            el.style.left = destinoX + 'px';
+            el.style.top = destinoY + 'px';
+            el.style.transform = 'scale(0.5)';
+            el.style.opacity = '0.2';
+            setTimeout(() => {
+                sumarMisil();
+                el.remove();
+            }, 800);
+        }
+
+        // === ANIMACIÓN +1/+2 que viaja a la barra de vida ===
+        // Convierte una posición 3D del mundo a coordenadas de pantalla
+        function posicion3DaPantalla(pos3D) {
+            const vector = pos3D.clone();
+            vector.project(camera);
+            const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-vector.y * 0.5 + 0.5) * window.innerHeight;
+            return { x: x, y: y };
+        }
+
+        // Crea un número flotante (+1 o +2) que viaja desde una posición 3D hasta la barra de vida
+        function crearVidaFlotante(pos3D, cantidad) {
+            const inicio = posicion3DaPantalla(pos3D);
+            // Posición destino: la barra de vida (esquina superior izquierda, aprox)
+            const destinoX = 120;  // centro aproximado de la barra
+            const destinoY = 75;   // altura aproximada de la barra
+
+            const el = document.createElement('div');
+            el.className = 'vida-flotante';
+            el.textContent = '+' + cantidad;
+            el.style.left = inicio.x + 'px';
+            el.style.top = inicio.y + 'px';
+            document.body.appendChild(el);
+
+            // Forzar reflow para que la transición funcione
+            el.offsetHeight;
+
+            // Animar: viajar al destino, encogerse y desvanecerse
+            el.style.left = destinoX + 'px';
+            el.style.top = destinoY + 'px';
+            el.style.transform = 'scale(0.5)';
+            el.style.opacity = '0.2';
+
+            // Al llegar a la barra (después de 800ms): vibrar y sumar vida
+            setTimeout(() => {
+                // Vibrar la barra de vida
+                const contenedorBarra = document.querySelector('#barra-vida').parentElement;
+                contenedorBarra.classList.remove('barra-vibrando');
+                void contenedorBarra.offsetWidth; // forzar reflow
+                contenedorBarra.classList.add('barra-vibrando');
+                // Eliminar el número flotante
+                el.remove();
+            }, 800);
+        }
+
+        function actualizarMisilesHUD() {
+            const barra = document.getElementById('misiles-barra');
+            const texto = document.getElementById('misiles-contador');
+            const porcentaje = (misilesDisponibles / MISILES_MAX) * 100;
+            if (barra) {
+                barra.style.width = porcentaje + '%';
+                // Color según cantidad de misiles
+                if (misilesDisponibles >= 4) {
+                    barra.style.background = 'linear-gradient(90deg, #0066ff, #66bbff)';
+                } else if (misilesDisponibles >= 2) {
+                    barra.style.background = 'linear-gradient(90deg, #3399cc, #66aaff)';
+                } else {
+                    barra.style.background = 'linear-gradient(90deg, #ff4400, #ff8844)';
+                }
+            }
+            if (texto) texto.textContent = misilesDisponibles + ' / ' + MISILES_MAX;
+        }
+
+        // === SISTEMA DE MISILES TELEDIRIGIDOS ===
+        function dispararMisil() {
+            if (!shipAlive) return;
+            if (misilesDisponibles <= 0) return;
+
+            // Buscar el enemigo más cercano como objetivo (opcional)
+            let objetivo = null;
+            let menorDistancia = Infinity;
+            for (let i = 0; i < navesEnemigas.length; i++) {
+                const nave = navesEnemigas[i];
+                const dx = nave.position.x - ship.position.x;
+                const dy = nave.position.y - ship.position.y;
+                const dz = nave.position.z - ship.position.z;
+                const dist = dx*dx + dy*dy + dz*dz;
+                if (dist < menorDistancia) {
+                    menorDistancia = dist;
+                    objetivo = nave;
+                }
+            }
+            // El misil se dispara SIEMPRE, teledirigido solo si hay objetivo
+
+            misilesDisponibles--;
+            actualizarMisilesHUD();
+
+            // Crear el misil: cilindro azul brillante
+            const misilGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.8, 6);
+            misilGeo.rotateX(Math.PI / 2);
+            const misilMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const misil = new THREE.Mesh(misilGeo, misilMat);
+            misil.position.set(ship.position.x, ship.position.y, ship.position.z - 1);
+            misil.userData = {
+                objetivo: objetivo,  // puede ser null (vuelo libre)
+                velocidad: 60,
+                vida: 5.0,
+                // Si no hay objetivo, volar hacia adelante (-Z)
+                dirLibre: { x: 0, y: 0, z: -1 },
+                // Sistema de estela: historial de posiciones
+                trail: [],
+                trailMax: 25
+            };
+            // Orientar el misil hacia adelante al inicio
+            misil.rotation.x = Math.PI / 2;
+            // Luz azul que sigue al misil
+            const luzMisil = new THREE.PointLight(0x00ffff, 2.5, 12);
+            misil.add(luzMisil);
+
+            // === Crear geometría de estela (ribbon mesh como el de la nave) ===
+            const trailGeo = new THREE.BufferGeometry();
+            const numVertsTrail = 25 * 2;
+            const trailPos = new Float32Array(numVertsTrail * 3);
+            const trailCol = new Float32Array(numVertsTrail * 3);
+            const trailIdx = [];
+            for (let t = 0; t < 24; t++) {
+                const a = t * 2;
+                const b = t * 2 + 1;
+                const c = (t + 1) * 2;
+                const d = (t + 1) * 2 + 1;
+                trailIdx.push(a, b, c);
+                trailIdx.push(b, d, c);
+            }
+            trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+            trailGeo.setAttribute('color', new THREE.BufferAttribute(trailCol, 3));
+            trailGeo.setIndex(trailIdx);
+            const trailMat = new THREE.MeshBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const trailMesh = new THREE.Mesh(trailGeo, trailMat);
+            misil.userData.trailMesh = trailMesh;
+            scene.add(trailMesh);
+
+            misilesArray.push(misil);
+            scene.add(misil);
+        }
+
+        function actualizarMisiles(delta) {
+            for (let i = misilesArray.length - 1; i >= 0; i--) {
+                const m = misilesArray[i];
+                const ud = m.userData;
+                ud.vida -= delta;
+
+                // === Actualizar estela del misil ===
+                if (ud.trailMesh) {
+                    // Agregar posición actual al historial
+                    ud.trail.unshift({
+                        x: m.position.x,
+                        y: m.position.y,
+                        z: m.position.z
+                    });
+                    if (ud.trail.length > ud.trailMax) ud.trail.pop();
+                    while (ud.trail.length < ud.trailMax) {
+                        ud.trail.push({ x: m.position.x, y: m.position.y, z: m.position.z });
+                    }
+                    // Actualizar geometría del ribbon
+                    const posAttr = ud.trailMesh.geometry.attributes.position;
+                    const colAttr = ud.trailMesh.geometry.attributes.color;
+                    const _dirM = new THREE.Vector3();
+                    const _perpM = new THREE.Vector3();
+                    const _rightM = new THREE.Vector3(1, 0, 0);
+                    const anchoTrail = 0.4;
+                    for (let j = 0; j < ud.trailMax; j++) {
+                        const p = ud.trail[j];
+                        // Dirección entre puntos consecutivos
+                        let dirX = 0, dirY = 0, dirZ = -1;
+                        if (j < ud.trailMax - 1) {
+                            const next = ud.trail[j + 1];
+                            dirX = next.x - p.x;
+                            dirY = next.y - p.y;
+                            dirZ = next.z - p.z;
+                            const len = Math.sqrt(dirX*dirX + dirY*dirY + dirZ*dirZ);
+                            if (len > 0.0001) { dirX /= len; dirY /= len; dirZ /= len; }
+                        }
+                        _dirM.set(dirX, dirY, dirZ);
+                        _perpM.crossVectors(_dirM, _rightM).normalize();
+                        const t = j / (ud.trailMax - 1); // 0 en la cabeza, 1 en la cola
+                        const ancho = anchoTrail * (1 - t * 0.85); // se estrecha hacia la cola
+                        // Vértice superior
+                        posAttr.array[j*6]   = p.x + _perpM.x * ancho;
+                        posAttr.array[j*6+1] = p.y + _perpM.y * ancho;
+                        posAttr.array[j*6+2] = p.z + _perpM.z * ancho;
+                        // Vértice inferior
+                        posAttr.array[j*6+3] = p.x - _perpM.x * ancho;
+                        posAttr.array[j*6+4] = p.y - _perpM.y * ancho;
+                        posAttr.array[j*6+5] = p.z - _perpM.z * ancho;
+                        // Color: cian brillante en la cabeza, desvanecido en la cola
+                        const intensidad = 1 - t;
+                        colAttr.array[j*6]   = intensidad * 0.3;
+                        colAttr.array[j*6+1] = intensidad * 1.0;
+                        colAttr.array[j*6+2] = intensidad * 1.0;
+                        colAttr.array[j*6+3] = intensidad * 0.3;
+                        colAttr.array[j*6+4] = intensidad * 1.0;
+                        colAttr.array[j*6+5] = intensidad * 1.0;
+                    }
+                    posAttr.needsUpdate = true;
+                    colAttr.needsUpdate = true;
+                }
+
+                // Si se acabó el tiempo, autodestruir
+                if (ud.vida <= 0) {
+                    crearExplosionPequena(m.position.x, m.position.y, m.position.z);
+                    if (ud.trailMesh) scene.remove(ud.trailMesh);
+                    scene.remove(m);
+                    misilesArray.splice(i, 1);
+                    continue;
+                }
+
+                // === Comportamiento según si hay objetivo o no ===
+                let objetivoValido = ud.objetivo && navesEnemigas.indexOf(ud.objetivo) !== -1;
+
+                if (objetivoValido) {
+                    // MODO TELEDIRIGIDO: perseguir al enemigo
+                    const obj = ud.objetivo;
+                    const dx = obj.position.x - m.position.x;
+                    const dy = obj.position.y - m.position.y;
+                    const dz = obj.position.z - m.position.z;
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    if (dist > 0.1) {
+                        m.position.x += (dx / dist) * ud.velocidad * delta;
+                        m.position.y += (dy / dist) * ud.velocidad * delta;
+                        m.position.z += (dz / dist) * ud.velocidad * delta;
+                    }
+                    m.lookAt(obj.position);
+                    // Comprobar impacto
+                    if (dist < 1.5) {
+                        // ¡Impacto! Destruir el enemigo instantáneamente
+                        crearExplosion(obj.position.x, obj.position.y, obj.position.z);
+                        playSfx(sfxExplosion);
+                        const puntosNave = 200 + obj.userData.vidaMax * 50;
+                        sumarPuntos(puntosNave);
+                        sumarBajaEnemigo();
+                        crearVidaFlotante(obj.position, 2);
+                        setTimeout(() => {
+                            if (vidaNave < VIDA_MAX) {
+                                vidaNave++;
+                                actualizarBarraVida();
+                            }
+                        }, 800);
+                        if (obj.userData.barraVida) scene.remove(obj.userData.barraVida);
+                        if (obj.userData.barraFondo) scene.remove(obj.userData.barraFondo);
+                        if (obj.userData.textoMesh) scene.remove(obj.userData.textoMesh);
+                        scene.remove(obj);
+                        navesEnemigas.splice(navesEnemigas.indexOf(obj), 1);
+                        if (ud.trailMesh) scene.remove(ud.trailMesh);
+                        scene.remove(m);
+                        misilesArray.splice(i, 1);
+                    }
+                } else {
+                    // MODO VUELO LIBRE: avanza hacia adelante (-Z)
+                    // Si había objetivo pero desapareció, cambiar a vuelo libre
+                    if (ud.objetivo && !objetivoValido) {
+                        ud.objetivo = null;
+                    }
+                    m.position.z -= ud.velocidad * delta;
+                    // Comprobar colisión con asteroides en vuelo libre
+                    let impactoAsteroide = false;
+                    for (let j = 0; j < asteroids.length; j++) {
+                        const ast = asteroids[j];
+                        const dx = ast.position.x - m.position.x;
+                        const dy = ast.position.y - m.position.y;
+                        const dz = ast.position.z - m.position.z;
+                        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                        const radioAst = ast.geometry.parameters.radius || 1;
+                        if (dist < radioAst + 0.3) {
+                            // Destruir asteroide
+                            crearExplosionPequena(ast.position.x, ast.position.y, ast.position.z);
+                            playSfx(sfxExplosion);
+                            if (!ast.userData.contado) {
+                                sumarPuntos(PUNTOS_DESTRUIR);
+                                ast.userData.contado = true;
+                            }
+                            ast.position.z = -400 - Math.random() * 100;
+                            ast.position.x = (Math.random() - 0.5) * 18;
+                            ast.position.y = (Math.random() - 0.5) * 10;
+                            ast.userData.contado = false;
+                            impactoAsteroide = true;
+                            break;
+                        }
+                    }
+                    if (impactoAsteroide) {
+                        if (ud.trailMesh) scene.remove(ud.trailMesh);
+                        scene.remove(m);
+                        misilesArray.splice(i, 1);
+                        continue;
+                    }
+                    // Si salió de rango, eliminar
+                    if (m.position.z < -200) {
+                        if (ud.trailMesh) scene.remove(ud.trailMesh);
+                        scene.remove(m);
+                        misilesArray.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function actualizarBarraVida() {
+            const barra = document.getElementById('barra-vida');
+            const texto = document.getElementById('vida-texto');
+            const porcentaje = (vidaNave / VIDA_MAX) * 100;
+            barra.style.width = porcentaje + '%';
+            texto.textContent = vidaNave + ' / ' + VIDA_MAX;
+            // Cambiar color según vida
+            if (vidaNave >= 4) {
+                barra.style.background = 'linear-gradient(90deg, #00ff00, #88ff44)';
+            } else if (vidaNave >= 2) {
+                barra.style.background = 'linear-gradient(90deg, #ffaa00, #ffdd44)';
+            } else {
+                barra.style.background = 'linear-gradient(90deg, #ff0000, #ff4444)';
+            }
+        }
+
+        function sumarPuntos(cantidad) {
+            puntaje += cantidad;
+            const el = document.getElementById('puntaje');
+            el.textContent = puntaje;
+            // Efecto: agrandar brevemente al sumar puntos
+            el.style.transform = 'scale(1.3)';
+            el.style.color = '#ffdd66';
+            setTimeout(() => {
+                el.style.transform = 'scale(1)';
+                el.style.color = '#ffffff';
+            }, 150);
+        }
+
+        // Botón de reinicio eliminado - el juego se reinicia solo
+
+        function reiniciarJuego() {
+            limpiarNavesEnemigas();
+            explosionParticles.forEach(p => scene.remove(p));
+            explosionParticles.length = 0;
+            vidaNave = VIDA_MAX;
+            enemigosDestruidos = 0;
+            misilesDisponibles = 2; // al morir, vuelves a empezar con 2 misiles
+            actualizarMisilesHUD();
+            actualizarRangoHUD();
+            actualizarBarraVida();
+            tiempoInvulnerable = 0;
+            puntaje = 0;
+            document.getElementById('puntaje').textContent = '0';
+            // Al morir, volver al nivel 1
+            nivelActual = 1;
+            nivelSuperado = false;
+            planetaPasado = false;
+            // Reset del planeta a su posición lejana inicial
+            planetGroup.position.set(-30, 15, -600); // más cerca para que se ilumine antes
+            iniciarNivel(1);
+            gameOverEl.style.display = 'none';
+        }
+
+        // Mostrar pantalla de NIVEL SUPERADO y avanzar al siguiente nivel
+        function mostrarNivelSuperado() {
+            const overlay = document.getElementById('nivel-superado');
+            overlay.style.display = 'flex';
+            // Tras 4 segundos, avanzar al siguiente nivel (el juego sigue corriendo)
+            setTimeout(() => {
+                nivelActual++;
+                nivelSuperado = false;
+                overlay.style.display = 'none';
+                // Actualizar el HUD del nivel inmediatamente
+                const hudNivel = document.getElementById('hud-nivel');
+                if (hudNivel) {
+                    hudNivel.textContent = 'NIVEL ' + nivelActual;
+                    hudNivel.style.display = 'block';
+                }
+                iniciarNivel(nivelActual);
+            }, 4000);
+        }
+
+        // Inicia un nivel: asteroides con dificultad escalada
+        function iniciarNivel(nivel) {
+            // Dificultad nueva: velocidad FIJA, cantidad sube poco, impredecibilidad sube mucho
+            const numAsteroides = 35 + (nivel - 1) * 5; // nivel 1: 35, nivel 2: 40, nivel 3: 45... (sube poco)
+            const velocidadAst = 60; // VELOCIDAD FIJA - no aumenta con el nivel
+            // Impredecibilidad: aumenta bastante con el nivel
+            const erranciaBase = 6 + (nivel - 1) * 4; // nivel 1: ±3, nivel 2: ±5, nivel 3: ±7, nivel 4: ±9...
+            const erranciaYBase = 4 + (nivel - 1) * 3; // nivel 1: ±2, nivel 2: ±3.5, nivel 3: ±5...
+            const rangoX = 18; // cubre toda la pantalla visible
+            const rangoY = 10;
+
+            // Limpiar asteroides existentes
+            asteroids.forEach(ast => scene.remove(ast));
+            asteroids.length = 0;
+
+            // Crear nuevos asteroides con dificultad escalada
+            for(let i = 0; i < numAsteroides; i++) {
+                const tamano = Math.min(1.6, Math.random()*0.7 + 0.5 + (nivel-1)*0.12);
+                const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(tamano, 0), asteroidMat);
+                ast.position.set(
+                    (Math.random() - 0.5) * rangoX,
+                    (Math.random() - 0.5) * rangoY,
+                    -Math.random() * 400 - 20
+                );
+                ast.rotationSpeed = { x: Math.random() * 0.05, y: Math.random() * 0.05 };
+                ast.userData.velocidad = velocidadAst;
+                // Movimiento errante: ESCALADO por nivel (más impredecible en niveles altos)
+                ast.userData.velX = (Math.random() - 0.5) * erranciaBase;
+                ast.userData.velY = (Math.random() - 0.5) * erranciaYBase;
+                // Probabilidad de cambio de dirección aleatorio (más alta en niveles altos)
+                ast.userData.probCambio = 0.01 + (nivel - 1) * 0.005; // nivel 1: 1%, nivel 2: 1.5%, nivel 3: 2%...
+                asteroids.push(ast);
+                scene.add(ast);
+            }
+
+            // Generar asteroides verdes de vida (1UP): 1 por cada 15 asteroides normales
+            const numAsteroidesVida = Math.max(1, Math.floor(numAsteroides / 15));
+            for(let i = 0; i < numAsteroidesVida; i++) {
+                const tamanoVida = 0.7;
+                const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(tamanoVida, 0), asteroidLifeMat);
+                ast.position.set(
+                    (Math.random() - 0.5) * rangoX,
+                    (Math.random() - 0.5) * rangoY,
+                    -Math.random() * 400 - 50
+                );
+                ast.rotationSpeed = { x: Math.random() * 0.06, y: Math.random() * 0.06 };
+                ast.userData.velocidad = velocidadAst * 0.85;
+                ast.userData.esVida = true;
+                ast.userData.velX = (Math.random() - 0.5) * (erranciaBase * 0.6);
+                ast.userData.velY = (Math.random() - 0.5) * (erranciaYBase * 0.6);
+                ast.userData.probCambio = 0.01 + (nivel - 1) * 0.005;
+                ast.userData.contado = false;
+                asteroids.push(ast);
+                scene.add(ast);
+            }
+
+            // Generar asteroides azules de MISIL: 1-2 por nivel (menos frecuentes que los verdes)
+            const numAsteroidesMisil = Math.random() < 0.7 ? 1 : 2; // 70% -> 1, 30% -> 2
+            for(let i = 0; i < numAsteroidesMisil; i++) {
+                const tamanoMisil = 1.0; // más grande que los verdes (0.7)
+                const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(tamanoMisil, 0), asteroidMissileMat);
+                ast.position.set(
+                    (Math.random() - 0.5) * rangoX,
+                    (Math.random() - 0.5) * rangoY,
+                    -Math.random() * 400 - 100
+                );
+                ast.rotationSpeed = { x: Math.random() * 0.05, y: Math.random() * 0.05 };
+                ast.userData.velocidad = velocidadAst * 0.7; // más lento para diferenciarlo
+                ast.userData.esMisil = true; // marca especial
+                ast.userData.velX = (Math.random() - 0.5) * (erranciaBase * 0.5);
+                ast.userData.velY = (Math.random() - 0.5) * (erranciaYBase * 0.5);
+                ast.userData.probCambio = 0.01 + (nivel - 1) * 0.005;
+                ast.userData.contado = false;
+                asteroids.push(ast);
+                scene.add(ast);
+            }
+
+            // === SISTEMA DE APARICIÓN ALEATORIA DE NAVES ENEMIGAS ===
+            limpiarNavesEnemigas();
+            // Cancelar cualquier generador anterior pendiente
+            if (window.intervalNaves) clearTimeout(window.intervalNaves);
+            if (window.timeoutAviso) clearTimeout(window.timeoutAviso);
+            window.nivelNavesActivo = nivel;
+
+            if (nivel >= 1) { // enemigos desde el nivel 1
+                // Mostrar aviso aleatorio entre 10s y 18s (no siempre a la misma hora)
+                // Aviso aleatorio: 8-14s en nivel 1, más temprano en niveles altos
+                const tiempoAviso = Math.max(5000, 8000 + Math.random() * 6000 - (nivel - 1) * 500);
+                window.timeoutAviso = setTimeout(() => {
+                    if (window.nivelNavesActivo !== nivel) return; // nivel cambió
+                    if (!juegoIniciado || !shipAlive) return;
+                    const aviso = document.getElementById('aviso-enemigos');
+                    aviso.style.display = 'block';
+                    setTimeout(() => { aviso.style.display = 'none'; }, 3000);
+                }, tiempoAviso);
+
+                // Función recursiva: programa cada nave con tiempo aleatorio
+                function programarSiguienteNave(nivelActual, navesCreadas, maxNaves) {
+                    if (window.nivelNavesActivo !== nivelActual) return; // cambió el nivel
+                    if (!juegoIniciado || !shipAlive) return;
+                    if (navesCreadas >= maxNaves) return;
+
+                    // Crear la nave
+                    crearNaveEnemiga(nivelActual);
+
+                    // Tiempo aleatorio hasta la siguiente nave
+                    // En niveles altos: aparecen más seguido (rango más corto)
+                    const tiempoMin = Math.max(1500, 4000 - nivelActual * 300); // nivel 2: 3.4s, nivel 5: 2.5s, nivel 10: 1s
+                    const tiempoMax = Math.max(3000, 7000 - nivelActual * 500); // nivel 2: 6s, nivel 5: 4.5s, nivel 10: 2s
+                    const siguiente = tiempoMin + Math.random() * (tiempoMax - tiempoMin);
+
+                    window.intervalNaves = setTimeout(() => {
+                        programarSiguienteNave(nivelActual, navesCreadas + 1, maxNaves);
+                    }, siguiente);
+                }
+
+                // Cantidad total de naves en el nivel (escala con el nivel)
+                // nivel 2 -> 2, nivel 3 -> 4, nivel 4 -> 6, nivel 5 -> 8, nivel 6 -> 10, nivel 7+ -> 12
+                // En niveles altos: muchas más naves (máximo 15)
+                // Cantidad: nivel 1 = 1 nave, sube 2 por nivel, máximo 18
+                const maxNavesNivel = Math.min(18, 1 + (nivel - 1) * 2);
+                // La primera nave aparece 3s después del aviso (que fue aleatorio)
+                const tiempoPrimeraNave = tiempoAviso + 3000;
+                window.intervalNaves = setTimeout(() => {
+                    programarSiguienteNave(nivel, 0, maxNavesNivel);
+                }, tiempoPrimeraNave);
+            }
+
+            // Reiniciar nave y estado
+            ship.visible = true;
+            shipAlive = true;
+            targetX = 0;
+            targetY = 0;
+            ship.position.set(0, 0, 0);
+            vidaNave = VIDA_MAX;
+            actualizarBarraVida();
+            tiempoInvulnerable = 0;
+            tiempoGracia = 10;
+            asteroidesActivos = false;
+
+            // Actualizar HUD de nivel (siempre visible)
+            const hudNivel = document.getElementById('hud-nivel');
+            if (hudNivel) {
+                hudNivel.textContent = 'NIVEL ' + nivel;
+            }
+        }
+
+        function destruirNave() {
+            if (!shipAlive) return;
+            shipAlive = false;
+            crearExplosion(ship.position.x, ship.position.y, ship.position.z);
+            ship.visible = false;
+            // Sonido de Game Over
+            playSfx(sfxGameOver);
+            // Mostrar mensaje de destrucción
+            gameOverEl.style.display = 'flex';
+
+            // Mostrar puntaje final
+            document.getElementById('puntaje-final').textContent = puntaje;
+
+            // Verificar si entró al top 10
+            if (esTop10(puntaje)) {
+                // Mostrar formulario de ingreso de nombre
+                document.getElementById('ingreso-nombre').style.display = 'block';
+                document.getElementById('ranking-display').style.display = 'none';
+                // Focus en el input
+                setTimeout(() => document.getElementById('input-nombre').focus(), 100);
+                // Resetear input
+                document.getElementById('input-nombre').value = '';
+            } else {
+                // No entró al top 10, solo mostrar el ranking
+                document.getElementById('ingreso-nombre').style.display = 'none';
+                document.getElementById('ranking-display').style.display = 'block';
+                mostrarRanking();
+                // Reinicio automático a los 5s
+                setTimeout(() => {
+                    reiniciarJuego();
+                }, 5000);
+            }
+        }
+
+        // Manejar el botón GUARDAR del ranking
+        document.getElementById('btn-guardar').addEventListener('click', function() {
+            const nombre = document.getElementById('input-nombre').value.trim() || 'AAA';
+            // Obtener el grado militar actual del jugador
+            const { actual } = obtenerRango();
+            agregarAlRanking(nombre, puntaje, actual.nombre);
+            // Encontrar la posición del nuevo registro
+            const nuevoIdx = ranking.findIndex(r => r.nombre === nombre.toUpperCase().substring(0, 10) && r.puntos === puntaje);
+            // Actualizar HUD del récord (por si cambió el #1)
+            actualizarRecordHUD();
+            actualizarTop3HUD();
+            // Ocultar formulario, mostrar ranking
+            document.getElementById('ingreso-nombre').style.display = 'none';
+            document.getElementById('ranking-display').style.display = 'block';
+            mostrarRanking(nuevoIdx);
+            // Reinicio a los 5s
+            setTimeout(() => {
+                reiniciarJuego();
+            }, 5000);
+        });
+
+        // Permitir guardar con Enter desde el input
+        document.getElementById('input-nombre').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('btn-guardar').click();
+            }
+        });
+
+        function comprobarColisiones() {
+            if (!shipAlive) return;
+            // Si está invulnerable tras un choque, no comprobar
+            if (tiempoInvulnerable > 0) return;
+            for (let i = 0; i < asteroids.length; i++) {
+                const ast = asteroids[i];
+                if (ast.position.z < -5 || ast.position.z > 5) continue;
+                const dx = ast.position.x - ship.position.x;
+                const dy = ast.position.y - ship.position.y;
+                const dz = ast.position.z - ship.position.z;
+                const distancia = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                const radioAst = ast.geometry.parameters.radius || 1;
+                if (distancia < COLLISION_RADIUS + radioAst * 0.7) {
+                    recibirImpacto();
+                    break;
+                }
+            }
+        }
+
+        function recibirImpacto() {
+            if (!shipAlive || tiempoInvulnerable > 0) return;
+            // Buscar el asteroide con el que chocó
+            let asteroideChocado = null;
+            for (let i = 0; i < asteroids.length; i++) {
+                const ast = asteroids[i];
+                if (ast.position.z < -5 || ast.position.z > 5) continue;
+                const dx = ast.position.x - ship.position.x;
+                const dy = ast.position.y - ship.position.y;
+                const dz = ast.position.z - ship.position.z;
+                const distancia = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                const radioAst = ast.geometry.parameters.radius || 1;
+                if (distancia < COLLISION_RADIUS + radioAst * 0.7) {
+                    asteroideChocado = ast;
+                    break;
+                }
+            }
+            if (!asteroideChocado) return;
+
+            // Si es asteroide de vida: sumar vida y bonus, NO perder vida
+            if (asteroideChocado.userData.esVida) {
+                crearExplosionPequena(ship.position.x, ship.position.y, ship.position.z);
+                playSfx(sfxVida);
+                crearVidaFlotante(asteroideChocado.position, 1);
+                if (vidaNave < VIDA_MAX) {
+                    setTimeout(() => {
+                        if (vidaNave < VIDA_MAX) {
+                            vidaNave++;
+                            actualizarBarraVida();
+                        }
+                    }, 800);
+                }
+                asteroideChocado.position.z = -400 - Math.random() * 100;
+                asteroideChocado.position.x = (Math.random() - 0.5) * 18;
+                asteroideChocado.position.y = (Math.random() - 0.5) * 10;
+                asteroideChocado.userData.contado = false;
+                return;
+            }
+            // Si es asteroide de misil (azul): sumar misil, NO perder vida
+            if (asteroideChocado.userData.esMisil) {
+                crearExplosionPequena(ship.position.x, ship.position.y, ship.position.z);
+                playSfx(sfxVida);
+                crearMisilFlotante(asteroideChocado.position);
+                sumarPuntos(100);
+                asteroideChocado.position.z = -400 - Math.random() * 100;
+                asteroideChocado.position.x = (Math.random() - 0.5) * 18;
+                asteroideChocado.position.y = (Math.random() - 0.5) * 10;
+                asteroideChocado.userData.contado = false;
+                return;
+            }
+
+            // Asteroide normal: perder vida
+            vidaNave--;
+            actualizarBarraVida();
+            crearExplosionPequena(ship.position.x, ship.position.y, ship.position.z);
+            playSfx(sfxExplosion); // sonido de impacto/explosión
+            asteroideChocado.position.z = -400 - Math.random() * 100;
+            asteroideChocado.position.x = (Math.random() - 0.5) * 18;
+            asteroideChocado.position.y = (Math.random() - 0.5) * 10;
+            asteroideChocado.userData.contado = false;
+
+            // Si la vida llega a 0, destruir la nave
+            if (vidaNave <= 0) {
+                destruirNave();
+            } else {
+                tiempoInvulnerable = 1.5;
+            }
+        }
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key in keys) {
+                keys[e.key] = true;
+                e.preventDefault(); 
+            }
+            // Disparar con la tecla 'a', 'A' o la barra espaciadora
+            if (e.key === 'a' || e.key === 'A' || e.code === 'Space') {
+                disparar();
+                disparandoTeclado = true;
+                if (e.code === 'Space') e.preventDefault();
+            }
+            // Disparar misil teledirigido con la tecla 'M'
+            if (e.key === 'm' || e.key === 'M') {
+                dispararMisil();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key in keys) {
+                keys[e.key] = false;
+            }
+            // Soltar tecla de disparo
+            if (e.key === 'a' || e.key === 'A' || e.code === 'Space') {
+                disparandoTeclado = false;
+            }
+        });
+
+        // 8.5 CONTROL CON MOUSE: mover y disparar
+        let mouseControl = false;
+        let mouseX = 0, mouseY = 0;
+        // Normaliza coordenadas del mouse al rango de la nave
+        window.addEventListener('mousemove', (e) => {
+            mouseControl = true;
+            // -1..1 en X, -1..1 en Y (invertido)
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -((e.clientY / window.innerHeight) * 2 - 1);
+        });
+
+        // Disparar con click del mouse
+        window.addEventListener('mousedown', (e) => {
+            disparar();
+            disparandoMouse = true;
+        });
+        window.addEventListener('mouseup', (e) => {
+            disparandoMouse = false;
+        });
+
+        // Si el usuario toca una tecla de flecha, desactivar mouse temporalmente
+        window.addEventListener('keydown', (e) => {
+            if (e.key in keys) {
+                mouseControl = false;
+            }
+        });
+
+        const speed = 6;       
+        const LIMIT_X = 7.0;   // Doble del rango horizontal
+        const LIMIT_Y = 3.5;   // Doble del rango vertical   
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // Si el juego no ha iniciado, solo animar el fondo (estrellas) y renderizar
+            if (!juegoIniciado) {
+                farStarMaterial.opacity = 0.25 + Math.sin(time * 0.7) * 0.08;
+                farStars.rotation.z += delta * 0.005;
+                miraGroup.visible = false;
+                renderer.render(scene, camera);
+                return;
+            }
+            // La mira solo se ve cuando la nave está viva
+            miraGroup.visible = shipAlive;
+
+            // El juego sigue corriendo durante el cambio de nivel (no se pausa)
+
+            if (keys.ArrowLeft)  targetX -= speed * delta;
+            if (keys.ArrowRight) targetX += speed * delta;
+            if (keys.ArrowUp)    targetY += speed * delta;
+            if (keys.ArrowDown)  targetY -= speed * delta;
+
+            // Si el mouse controla la nave, mapear su posición al rango
+            if (mouseControl) {
+                targetX = mouseX * LIMIT_X;
+                targetY = mouseY * LIMIT_Y;
+            }
+
+            targetX = Math.max(-LIMIT_X, Math.min(LIMIT_X, targetX));
+            targetY = Math.max(-LIMIT_Y, Math.min(LIMIT_Y, targetY));
+
+            ship.position.x += (targetX - ship.position.x) * 0.08;
+            ship.position.y += (targetY - ship.position.y) * 0.08;
+            ship.rotation.z = (targetX - ship.position.x) * -1.2 + Math.sin(time * 2) * 0.02;
+
+            // La mira 3D sigue la posición X/Y de la nave, siempre a la misma distancia Z
+            // Esto hace que la X apunte exactamente a donde van los disparos
+            miraGroup.position.x = ship.position.x;
+            miraGroup.position.y = ship.position.y;
+            // Pequeño pulso para que se note "viva"
+            const miraPulse = 1 + Math.sin(time * 4) * 0.05;
+            miraGroup.scale.setScalar(miraPulse);
+            // Parpadeo sutil de opacidad
+            miraMat.opacity = 0.5 + Math.sin(time * 3) * 0.15;
+            ship.rotation.x = (targetY - ship.position.y) * 0.5 + Math.sin(time * 2.5) * 0.02;
+            ship.rotation.y = (targetX - ship.position.x) * 0.2;
+
+            // El planeta avanza según el nivel (más rápido en niveles más altos)
+            const velocidadPlaneta = 22; // Velocidad FIJA del planeta - no aumenta con el nivel
+            planetGroup.position.z += delta * velocidadPlaneta;
+            // La bola gira sobre su eje Y
+            planet.rotation.y -= delta * 1.5; // un poquito más lento (~4s por vuelta)
+            planet.rotation.x = Math.sin(time * 0.3) * 0.1; // inclinación más notoria
+            // El anillo gira lento
+            ring.rotation.z += delta * 0.05;
+            // === Animar fuentes de luz externas: orbitan alrededor del planeta ===
+            const coloresRayos = [0xffdd22, 0x3366ff, 0xff3344]; // amarillo, azul, rojo
+            for (let i = 0; i < fuentesLuz.length; i++) {
+                const fuente = fuentesLuz[i];
+                const ud = fuente.userData;
+                ud.angulo += delta * ud.velocidad;
+                // Orbitar manteniendo la dirección base pero rotando
+                const base = ud.basePos;
+                const cosA = Math.cos(ud.angulo);
+                const sinA = Math.sin(ud.angulo);
+                // Rotar la posición base alrededor del eje Y del planeta
+                const newX = base.x * cosA + base.z * sinA;
+                const newZ = -base.x * sinA + base.z * cosA;
+                fuente.children[0].position.set(newX, base.y, newZ); // luz
+                fuente.children[1].position.set(newX, base.y, newZ); // sol (esfera visible)
+            }
+            // === Animar los rayos: parpadeo sutil (cada rayo aparece y desaparece) ===
+            for (let i = 0; i < rayosDisco.length; i++) {
+                const rayo = rayosDisco[i];
+                const ud = rayo.userData;
+                // Parpadeo individual con seno: opacidad entre 0 y 0.4 (sutil, no cegador)
+                const pulso = Math.sin(time * ud.velocidadParpadeo + ud.fase);
+                rayo.material.opacity = Math.max(0, pulso) * 0.4;
+            }
+
+            // === Animar letrero neon: gira con el planeta + redibujar con pulso ===
+            if (typeof letreroGroup !== 'undefined') {
+                // Las letras giran con el planeta a la misma velocidad extrema
+                letreroGroup.rotation.y -= delta * 1.5;
+                // Redibujar cada letra con el pulso neon
+                dibujarLetrasLetrero(time);
+                luzLetrero.intensity = 1.5 + Math.sin(time * 3) * 1.0;
+            }
+            
+            // Cuando el planeta pasa la nave: ¡NIVEL SUPERADO!
+            // El planeta tiene radio 80, así que su borde frontal llega a la nave (Z=0)
+            // cuando su centro está en Z=-80. Trigger cuando el planeta toca la nave.
+            if (planetGroup.position.z > -60 && !planetaPasado) {
+                planetaPasado = true;
+                nivelSuperado = true;
+                mostrarNivelSuperado();
+            }
+            // Reset del planeta: muy lejos para el siguiente nivel
+            if (planetGroup.position.z > 80) {
+                planetGroup.position.z = -1800; // mucho más lejos
+                planetGroup.position.x = (Math.random() - 0.5) * 60;
+                planetGroup.position.y = (Math.random() - 0.5) * 30;
+                planetaPasado = false;
+            }
+
+            // Estrellas cercanas: se mueven rápido (sensación de velocidad)
+            const positions = stars.geometry.attributes.position.array;
+            for (let i = 2; i < positions.length; i += 3) {
+                positions[i] += delta * 100;
+                if (positions[i] > 10) {
+                    positions[i] = -1000;
+                    positions[i-1] = (Math.random() - 0.5) * 200;
+                    positions[i-2] = (Math.random() - 0.5) * 300;
+                }
+            }
+            stars.geometry.attributes.position.needsUpdate = true;
+
+            // Estrellas medianas: se mueven muy lento (profundidad)
+            const midPositions = midStars.geometry.attributes.position.array;
+            for (let i = 2; i < midPositions.length; i += 3) {
+                midPositions[i] += delta * 8;
+                if (midPositions[i] > 10) {
+                    midPositions[i] = -1050;
+                    midPositions[i-1] = (Math.random() - 0.5) * 250;
+                    midPositions[i-2] = (Math.random() - 0.5) * 400;
+                }
+            }
+            midStars.geometry.attributes.position.needsUpdate = true;
+
+            // Estrellas lejanas: casi estáticas, parpadeo suave de opacidad
+            farStars.rotation.z += delta * 0.005;
+            farStarMaterial.opacity = 0.25 + Math.sin(time * 0.7) * 0.08;
+
+            // Nebulosas y galaxias: pulso de opacidad muy sutil (casi estáticas)
+            nebulosa1.material.opacity = 0.30 + Math.sin(time * 0.3) * 0.04;
+            nebulosa2.material.opacity = 0.27 + Math.sin(time * 0.4 + 1) * 0.04;
+            nebulosa3.material.opacity = 0.23 + Math.sin(time * 0.25 + 2) * 0.04;
+            galaxia1.material.opacity = 0.25 + Math.sin(time * 0.2) * 0.04;
+            galaxia2.material.opacity = 0.23 + Math.sin(time * 0.35 + 1.5) * 0.04;
+            // Giro lento de galaxias
+            galaxia1.material.rotation += delta * 0.02;
+            galaxia2.material.rotation -= delta * 0.015;
+
+            // Cuenta regresiva del tiempo de gracia
+            const contadorEl = document.getElementById('contador');
+            if (!asteroidesActivos) {
+                tiempoGracia -= delta;
+                if (contadorEl) {
+                    contadorEl.parentElement.style.display = 'block';
+                    contadorEl.textContent = Math.ceil(tiempoGracia);
+                }
+                if (tiempoGracia <= 0) {
+                    asteroidesActivos = true;
+                }
+            } else {
+                if (contadorEl) contadorEl.parentElement.style.display = 'none';
+            }
+
+            if (asteroidesActivos) {
+                asteroids.forEach(ast => {
+                    ast.position.z += delta * (ast.userData.velocidad || 40);
+                    ast.rotation.x += ast.rotationSpeed.x;
+                    ast.rotation.y += ast.rotationSpeed.y;
+                    // Movimiento errante lateral y vertical
+                    if (ast.userData.velX !== undefined) {
+                        ast.position.x += delta * ast.userData.velX;
+                        ast.position.y += delta * ast.userData.velY;
+                        // Rebote suave en los límites para que no se escapen todos
+                        if (ast.position.x > 9 || ast.position.x < -9) {
+                            ast.userData.velX *= -1;
+                            ast.position.x = Math.max(-9, Math.min(9, ast.position.x));
+                        }
+                        if (ast.position.y > 5 || ast.position.y < -5) {
+                            ast.userData.velY *= -1;
+                            ast.position.y = Math.max(-5, Math.min(5, ast.position.y));
+                        }
+                        // Cambios de dirección aleatorios según probabilidad del asteroide
+                        if (Math.random() < (ast.userData.probCambio || 0.01)) {
+                            // Mantener la magnitud de errancia del nivel actual
+                            const mag = Math.abs(ast.userData.velX) * 2 || 6;
+                            const magY = Math.abs(ast.userData.velY) * 2 || 4;
+                            ast.userData.velX = (Math.random() - 0.5) * mag;
+                            ast.userData.velY = (Math.random() - 0.5) * magY;
+                        }
+                    }
+                    if(ast.position.z > 5 && !ast.userData.contado) {
+                        ast.userData.contado = true;
+                        // Solo dar puntos de esquivar si NO es asteroide de vida
+                        if (!ast.userData.esVida) {
+                            sumarPuntos(PUNTOS_ESQUIVAR);
+                        }
+                    }
+                    if(ast.position.z > 10) {
+                        ast.position.z = -400 - Math.random() * 100;
+                        ast.position.x = (Math.random() - 0.5) * 18;
+                        ast.position.y = (Math.random() - 0.5) * 10;
+                        ast.userData.contado = false; // reset para la próxima pasada
+                    }
+                });
+
+                // Disparo automático si se mantiene apretado (respeta cadencia)
+            if (shipAlive && (disparandoTeclado || disparandoMouse)) {
+                disparar();
+            }
+
+            // Actualizar naves enemigas, balas y misiles
+            actualizarNavesEnemigas(delta, time);
+            actualizarBalasEnemigas(delta);
+            actualizarMisiles(delta);
+            comprobarBalasVsNavesEnemigas();
+            comprobarNavesEnemigasVsJugador();
+
+            // Comprobar colisiones solo cuando los asteroides están activos
+                comprobarColisiones();
+                // Decrementar invulnerabilidad y parpadear la nave
+                if (tiempoInvulnerable > 0) {
+                    tiempoInvulnerable -= delta;
+                    // Parpadeo: visible/invisible rápido
+                    ship.visible = Math.sin(time * 30) > 0;
+                } else if (shipAlive) {
+                    ship.visible = true;
+                }
+            }
+
+            // Actualizar balas láser (siempre activo para que se vean aunque no haya asteroides)
+            actualizarBalas(delta);
+
+            // Actualizar partículas de explosión
+            actualizarExplosion(delta);
+
+            // Actualizar estela de propulsión (trail que sigue a la nave)
+            actualizarEstelaPropulsion(delta, time);
+
+            // Actualizar visualizador de música
+            actualizarVisualizador(delta, time);
+
+            const pulse = Math.sin(time * 20) * 0.2 + 0.8;
+            if (shipAlive) {
+                engineCores.forEach(core => core.scale.z = pulse * 1.5);
+                engineLight.intensity = pulse * 2 + 1;
+                engineLight.position.set(ship.position.x, ship.position.y, ship.position.z + 2);
+            } else {
+                engineLight.intensity = 0;
+            }
+
+            // === Animar luces que orbitan la nave iluminando objetos al ritmo de 120 BPM ===
+            const bpmDiscoteque = 120;
+            const freqDiscoteque = bpmDiscoteque / 60; // 2 Hz
+            for (let i = 0; i < lucesDiscoteque.length; i++) {
+                const luz = lucesDiscoteque[i];
+                const ud = luz.userData;
+                // Pulso de intensidad al ritmo del BPM (0 a 2.5)
+                const beat = Math.max(0, Math.sin(time * freqDiscoteque * Math.PI + ud.fase));
+                luz.intensity = beat * 3.5; // un poco más intensas (era 2.5)
+                // Orbitar alrededor de la nave
+                const anguloActual = ud.anguloBase + time * ud.velocidadOrbita;
+                luz.position.x = ship.position.x + Math.cos(anguloActual) * ud.radioOrbita;
+                luz.position.y = ship.position.y + ud.yOffset;
+                luz.position.z = ship.position.z + Math.sin(anguloActual) * ud.radioOrbita - 5;
+                // Cambiar color cíclicamente
+                const idxColor = Math.floor((time * 0.25 + i * 0.5) % coloresDiscoteque.length);
+                luz.color.setHex(coloresDiscoteque[idxColor]);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

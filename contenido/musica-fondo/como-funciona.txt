@@ -1,0 +1,15 @@
+RADIO NEGRALUNA · la música de la página
+
+Copia aquí tus canciones (.mp3, .wav, .ogg, .m4a) y la radio
+lanzará una al azar al abrir la página; al terminar una,
+sigue con otra al azar.
+
+El visitante la apaga o enciende con el botón ON/OFF del
+widget que está abajo a la izquierda.
+
+Cuando suena un audio o un video dentro de un nodo (o el
+juego), la radio se calla sola y vuelve sola al terminar,
+si el interruptor quedó en ON.
+
+Sin canciones en esta carpeta, la radio no aparece: nada
+falso en pantalla.

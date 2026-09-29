@@ -1,0 +1,11 @@
+## Efectos de sonido de Discotopía
+
+Sube aquí los 4 sonidos del juego. Valen los nombres que
+tengan a mano — el juego los encuentra por cómo empiezan:
+
+- disparo.mp3      (empieza con "disparo")
+- explosion.mp3    (empieza con "explosion")
+- game over.mp3    (empieza con "game")
+- vida extra.wav   (empieza con "vida")
+
+Formatos válidos: mp3, wav, ogg, m4a, flac.

@@ -1,0 +1,8 @@
+# Historial de donadores — una línea por persona:  Nombre | $monto
+# La web los ordena sola, del aporte más alto al más bajo,
+# y el podio (los 3 primeros) lleva el sello "Destacado en redes".
+Camila Rojas | $15.000
+Diego Fuentes | $10.000
+Ana y Pedro | $8.000
+Anónimo | $5.000
+Sebastián Vera | $3.000

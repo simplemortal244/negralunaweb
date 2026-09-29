@@ -1,0 +1,146 @@
+/* ============================================================
+   NEGRALUNA · Visualizador (estilo Windows Media Player)
+   Ventana flotante con visualizaciones al ritmo de la música.
+   ============================================================ */
+
+#visualizer{
+  position:fixed; z-index:180;
+  left:50%; top:50%; transform:translate(-50%, -50%) scale(.92);
+  width:min(720px, 94vw); height:min(560px, 88vh);
+  background:#0a0604;
+  border:1px solid rgba(217,164,65,.55);
+  border-radius:8px;
+  box-shadow:0 30px 80px rgba(0,0,0,.8), 0 0 60px rgba(201,104,63,.18);
+  opacity:0; pointer-events:none;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  transition:opacity .28s ease, transform .42s cubic-bezier(.2,1,.3,1);
+  font-family:'Sora', system-ui, sans-serif;
+}
+#visualizer.on{
+  opacity:1; pointer-events:auto;
+  transform:translate(-50%, -50%) scale(1);
+}
+@media (max-width:760px){
+  #visualizer{ width:96vw; height:80vh; }
+}
+
+/* --- barra superior estilo WMP (azul metalizado) --- */
+.vp-chrome{ display:flex; flex-direction:column; height:100%; }
+
+.vp-titlebar{
+  flex:none; display:flex; align-items:center; gap:10px;
+  padding:8px 12px;
+  background:
+    linear-gradient(180deg, #1b6cd1 0%, #0d4fae 50%, #093d8c 100%);
+  border-bottom:1px solid rgba(0,0,0,.4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 1px 2px rgba(0,0,0,.4);
+}
+.vp-marquee{ display:flex; flex-direction:column; min-width:0; flex:1; }
+.vp-mode-tag{
+  font-size:9px; font-weight:700; letter-spacing:.2em;
+  color:rgba(255,255,255,.7);
+  text-shadow:0 1px 1px rgba(0,0,0,.4);
+}
+.vp-track{
+  display:block;
+  font-size:13.5px; font-weight:600; color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.vp-artist{
+  flex:none; max-width:42%; font-size:10.5px;
+  color:rgba(255,255,255,.7);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-shadow:0 1px 1px rgba(0,0,0,.5);
+}
+.vp-close{
+  flex:none; width:30px; height:30px;
+  border-radius:4px;
+  background:linear-gradient(180deg, #ff5b5b, #c93838);
+  border:1px solid rgba(0,0,0,.3);
+  color:#fff; font-size:18px; line-height:1;
+  cursor:pointer;
+  display:grid; place-items:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 1px 2px rgba(0,0,0,.4);
+  transition:filter .15s;
+}
+.vp-close:hover{ filter:brightness(1.18); }
+.vp-close:active{ transform:translateY(1px); }
+
+/* --- escenario (canvas) --- */
+.vp-stage{
+  flex:1; position:relative;
+  background:#000;
+  overflow:hidden;
+}
+.vp-canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+.vp-overlay{
+  position:absolute; top:10px; left:10px;
+  display:flex; align-items:baseline; gap:6px;
+  padding:5px 10px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:4px;
+  font-size:9.5px; letter-spacing:.22em; text-transform:uppercase;
+  color:rgba(255,255,255,.65);
+  pointer-events:none;
+}
+.vp-overlay b{ font-size:11px; color:#88d4ff; letter-spacing:.06em; text-transform:none; font-weight:600; }
+
+/* --- barra de controles estilo WMP --- */
+.vp-controls{
+  flex:none; display:flex; align-items:center; gap:8px;
+  padding:9px 12px;
+  background:
+    linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0e0e0e 100%);
+  border-top:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.vp-btn{
+  flex:none; width:34px; height:34px;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #4a8fdc 0%, #1d5fa8 60%, #0d3d75 100%);
+  border:1px solid rgba(0,0,0,.45);
+  color:#fff; font-size:13px; font-weight:700;
+  cursor:pointer;
+  display:grid; place-items:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 1px 2px rgba(0,0,0,.4);
+  transition:filter .15s, transform .1s;
+}
+.vp-btn:hover{ filter:brightness(1.15); }
+.vp-btn:active{ transform:translateY(1px); }
+.vp-btn.vp-play{ width:42px; height:42px; font-size:16px; }
+.vp-btn.vp-mode{ width:38px; height:24px; border-radius:6px; font-size:10px; letter-spacing:.05em; }
+
+.vp-progress{
+  flex:1; height:6px; min-width:60px;
+  background:rgba(255,255,255,.12);
+  border-radius:3px; overflow:hidden;
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.5);
+  cursor:pointer;
+}
+.vp-progress i{
+  display:block; height:100%; width:0%;
+  background:linear-gradient(90deg, #2c8bff, #88d4ff);
+  transition:width .1s linear;
+  box-shadow:0 0 8px rgba(40,140,255,.6);
+}
+.vp-cur, .vp-dur{
+  flex:none; font-size:11px; font-family:monospace;
+  color:rgba(255,255,255,.7); letter-spacing:.05em;
+  min-width:36px;
+}
+.vp-dur{ text-align:right; }
+.vp-vol{
+  flex:none; width:80px;
+  accent-color:#2c8bff;
+  cursor:pointer;
+}
+
+/* en móvil simplifica */
+@media (max-width:640px){
+  .vp-artist{ display:none; }
+  .vp-vol{ display:none; }
+  .vp-overlay{ display:none; }
+}

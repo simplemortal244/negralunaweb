@@ -1,0 +1,4 @@
+Esta carpeta es el reproductor de música de Discotopía:
+sube tus .mp3 y aparecen solos en el nodo Música, en orden
+alfabético y con botón de reproducción. El juego usa otra
+carpeta: juego/audios/.

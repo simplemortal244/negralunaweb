@@ -1,0 +1,7 @@
+# Redes sociales — una línea por red:  Nombre | https://tu-link
+# El nodo muestra primero el nombre del proyecto y debajo cada enlace.
+# Cambia estas direcciones de ejemplo por las tuyas.
+Instagram | https://www.instagram.com/negraluna.homestudio/
+YouTube | https://www.youtube.com/@negraluna.homestudio
+Spotify | https://open.spotify.com/artist/7mQW0vfU4Ih1EZBIG0D1ZG?si=5AQEbWikS9-aJxb4qVLVTg
+Mail | negraluna.homestudio@gmail.com

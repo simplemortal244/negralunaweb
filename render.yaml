@@ -1,0 +1,16 @@
+# Configuración de Render.com
+# Sube este repo a GitHub, conéctalo en Render como "Web Service",
+# y Render detecta este archivo para configurar todo solo.
+
+services:
+  - type: web
+    name: negraluna-homestudio
+    runtime: python
+    plan: free
+    buildCommand: pip install --no-cache-dir
+    startCommand: python servir.py --port $PORT --no-open
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7
