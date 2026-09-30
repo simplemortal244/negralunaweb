@@ -278,7 +278,7 @@ def main():
     ap.add_argument("--no-open", action="store_true", help="no abrir el navegador")
     args = ap.parse_args()
 
-    port = free_port(args.port)
+    port = int(os.environ.get("PORT", args.port))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
 
     url = f"http://localhost:{port}"
