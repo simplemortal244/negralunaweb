@@ -279,7 +279,7 @@ def main():
     args = ap.parse_args()
 
     port = free_port(args.port)
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
 
     url = f"http://localhost:{port}"
     print()
